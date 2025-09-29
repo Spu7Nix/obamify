@@ -92,6 +92,7 @@ pub struct VoronoiApp {
     size: (u32, u32),
     seed_count: u32,
     animate: bool,
+    speed: f32,
     fps_text: String,
     show_progress_modal: bool,
     progress_tx: mpsc::SyncSender<ProgressMsg>,
@@ -107,6 +108,7 @@ pub struct VoronoiApp {
     gif_encoder: Option<gif::Encoder<File>>,
     gif_palette: Option<NeuQuant>,
     gif_frame_count: u32,
+    frame_counter: u32,
     sim: Sim,
 
     // Seeds CPU copy
@@ -628,6 +630,7 @@ impl VoronoiApp {
             size,
             seed_count,
             animate: true,
+            speed: 1.0,
             fps_text: String::new(),
             seeds,
             colors,
@@ -672,6 +675,7 @@ impl VoronoiApp {
             gif_status: GifStatus::None,
             gif_frame_count: 0,
             gif_palette: None,
+            frame_counter: 0,
         }
     }
 
@@ -1313,8 +1317,18 @@ impl App for VoronoiApp {
                     }
                 }
             } else {
-                self.sim.update(&mut self.seeds, self.size.0);
+                if self.speed == 2.0 {
+                    self.sim.update(&mut self.seeds, self.size.0);
+                    self.sim.update(&mut self.seeds, self.size.0);
+                } else if self.speed == 1.0 {
+                    self.sim.update(&mut self.seeds, self.size.0);
+                } else if self.speed == 0.5 {
+                    if self.frame_counter % 2 == 0 {
+                        self.sim.update(&mut self.seeds, self.size.0);
+                    }
+                }
             }
+            self.frame_counter += 1;
             rs.queue
                 .write_buffer(&self.seed_buf, 0, bytemuck::cast_slice(&self.seeds));
         }
@@ -1351,6 +1365,19 @@ impl App for VoronoiApp {
                     self.change_sim(device, self.sim.source_path());
                     self.animate = false;
                 }
+                ui.separator();
+
+                ui.label("speed:");
+                if ui.button("0.5x").clicked() {
+                    self.speed = 0.5;
+                }
+                if ui.button("1x").clicked() {
+                    self.speed = 1.0;
+                }
+                if ui.button("2x").clicked() {
+                    self.speed = 2.0;
+                }
+
                 ui.separator();
 
                 if ui.button("save gif").clicked() {
