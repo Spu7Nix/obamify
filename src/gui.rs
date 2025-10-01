@@ -10,6 +10,7 @@ use crate::calculate;
 use crate::calculate::GenerationSettings;
 use crate::calculate::ProgressMsg;
 use crate::morph_sim::preset_path_to_name;
+use crate::DEFAULT_RESOLUTION;
 use eframe::App;
 use eframe::Frame;
 use egui::Color32;
@@ -19,6 +20,29 @@ use image::buffer::ConvertBuffer;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ExportFormat {
+    Gif,
+    WebM,
+    Mp4,
+}
+
+impl Default for ExportFormat {
+    fn default() -> Self {
+        ExportFormat::Gif
+    }
+}
+
+impl std::fmt::Display for ExportFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExportFormat::Gif => write!(f, "GIF"),
+            ExportFormat::WebM => write!(f, "WebM"),
+            ExportFormat::Mp4 => write!(f, "MP4"),
+        }
+    }
+}
 
 pub(crate) struct GuiState {
     pub last_mouse_pos: Option<(f32, f32)>,
@@ -33,6 +57,11 @@ pub(crate) struct GuiState {
     pub presets: Vec<PathBuf>,
     pub current_settings: GenerationSettings,
     pub configuring_generation: Option<PathBuf>,
+    pub custom_start_image: Option<PathBuf>,
+    pub custom_end_image: Option<PathBuf>,
+    pub using_custom_images: bool,
+    pub auto_resize_images: bool,
+    pub export_format: ExportFormat,
 }
 
 impl GuiState {
@@ -50,6 +79,11 @@ impl GuiState {
             currently_processing: None,
             current_settings: GenerationSettings::default(),
             configuring_generation: None,
+            custom_start_image: None,
+            custom_end_image: None,
+            using_custom_images: false,
+            auto_resize_images: true,
+            export_format: ExportFormat::default(),
         }
     }
 }
@@ -120,8 +154,9 @@ impl App for VoronoiApp {
                         self.gif_frame_count += 1;
 
                         if self.gif_frame_count >= GIF_NUM_FRAMES {
-                            // finish recording
-                            // self.stop_recording_gif(device);
+                            if let Some(_enc) = self.gif_encoder.take() {
+                                // dropping encoder flushes file
+                            }
                             if let GifStatus::Recording(Some(path)) = self.gif_status.clone() {
                                 self.gif_status = GifStatus::Complete(path);
                             } else {
@@ -130,7 +165,6 @@ impl App for VoronoiApp {
                                     self.gif_status
                                 ));
                             }
-
                             self.gui.animate = false;
                         }
                     }
@@ -219,53 +253,159 @@ impl App for VoronoiApp {
                             self.resize_textures(device, (GIF_RESOLUTION, GIF_RESOLUTION), false);
                             self.change_sim(device, self.sim.source_path());
                             self.gui.animate = true;
+                            self.gif_frame_count = 0; // reset counter
                             for _ in 0..20 {
                                 self.sim.update(&mut self.seeds, self.size.0);
                             }
                         }
 
-                        ui.separator();
-                        // choose preset
-                        // for (i, preset) in self.gui.presets.clone().into_iter().enumerate() {
-                        //     if ui.button(i.to_string()).clicked() {
-                        //         self.change_sim(device, preset);
-                        //         self.gui.animate = false;
-                        //     }
-                        // }
-                        ui.label("choose preset:");
-                        egui::ComboBox::from_label("")
-                            .selected_text({
-                                let name = self.sim.name();
-                                if name.chars().count() > 13 {
-                                    let truncated: String = name.chars().take(10).collect();
-                                    format!("{truncated}…")
-                                } else {
-                                    name.to_string()
+                        // GIF recording progress / status
+                        match &self.gif_status {
+                            GifStatus::Recording(Some(_)) => {
+                                let progress = self.gif_frame_count as f32 / GIF_NUM_FRAMES as f32;
+                                ui.add(
+                                    egui::ProgressBar::new(progress)
+                                        .desired_width(120.0)
+                                        .text(format!("GIF {:3.0}%", progress * 100.0)),
+                                );
+                                if ui.button("cancel gif").clicked() {
+                                    // cancel: drop encoder
+                                    self.gif_encoder = None;
+                                    self.gif_status = GifStatus::None;
+                                    self.gif_frame_count = 0;
+                                    self.resize_textures(device, (DEFAULT_RESOLUTION, DEFAULT_RESOLUTION), false);
+                                    self.change_sim(device, self.sim.source_path());
                                 }
-                            })
-                            .show_ui(ui, |ui| {
-                                for preset in self.gui.presets.clone().into_iter() {
-                                    if ui.button(preset_path_to_name(&preset)).clicked() {
-                                        // Call change_sim when a new preset is selected
-                                        self.change_sim(device, preset);
-                                        self.gui.animate = false;
+                            }
+                            GifStatus::Complete(path) => {
+                                ui.colored_label(egui::Color32::LIGHT_GREEN, "GIF saved");
+                                if ui.button("open file").clicked() {
+                                    let _ = opener::open(path);
+                                }
+                                if ui.button("reset size").clicked() {
+                                    self.resize_textures(device, (DEFAULT_RESOLUTION, DEFAULT_RESOLUTION), false);
+                                }
+                            }
+                            GifStatus::Error(err) => {
+                                ui.colored_label(egui::Color32::RED, format!("gif error: {err}"));
+                            }
+                            _ => {}
+                        }
+
+                        ui.separator();
+                        
+                        ui.horizontal(|ui| {
+                            ui.label("Mode:");
+                            if ui.radio(!self.gui.using_custom_images, "📂 Use Presets").clicked() {
+                                self.gui.using_custom_images = false;
+                                // Reset custom image selections when switching to presets
+                                self.gui.custom_start_image = None;
+                                self.gui.custom_end_image = None;
+                                if !self.gui.presets.is_empty() {
+                                    self.change_sim(device, self.gui.presets[0].clone());
+                                    self.gui.animate = false;
+                                }
+                            }
+                            if ui.radio(self.gui.using_custom_images, "🖼️ Custom Images").clicked() {
+                                self.gui.using_custom_images = true;
+                            }
+                        });
+
+                        if !self.gui.using_custom_images {
+                            // Preset mode
+                            ui.label("Choose preset:");
+                            egui::ComboBox::from_label("")
+                                .selected_text({
+                                    let name = self.sim.name();
+                                    if name.chars().count() > 13 {
+                                        let truncated: String = name.chars().take(10).collect();
+                                        format!("{truncated}…")
+                                    } else {
+                                        name.to_string()
                                     }
+                                })
+                                .show_ui(ui, |ui| {
+                                    for preset in self.gui.presets.clone().into_iter() {
+                                        if ui.button(preset_path_to_name(&preset)).clicked() {
+                                            // Call change_sim when a new preset is selected
+                                            self.change_sim(device, preset);
+                                            self.gui.animate = false;
+                                        }
+                                    }
+                                });
+                            if ui.button("obamify new image").clicked() {
+                                // open file select
+                                let file = rfd::FileDialog::new()
+                                    .set_title("choose image (square aspect ratio recommended)")
+                                    .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
+                                    .pick_file();
+
+                                if let Some(path) = file {
+                                    self.gui.configuring_generation = Some(path);
+                                }
+                            }
+                        } else {
+                            // Custom images mode
+                            ui.horizontal(|ui| {
+                                if ui.button("Select Start Image").clicked() {
+                                    let file = rfd::FileDialog::new()
+                                        .set_title("Choose start image (square aspect ratio recommended)")
+                                        .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
+                                        .pick_file();
+
+                                    if let Some(path) = file {
+                                        self.gui.custom_start_image = Some(path);
+                                    }
+                                }
+                                
+                                if let Some(ref path) = self.gui.custom_start_image {
+                                    ui.label(format!("✓ {}", path.file_name().unwrap().to_string_lossy()));
+                                } else {
+                                    ui.label("No start image selected");
                                 }
                             });
 
-                        if ui.button("obamify new image").clicked() {
-                            // open file select
-                            let file = rfd::FileDialog::new()
-                                .set_title("choose image (square aspect ratio recommended)")
-                                .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
-                                .pick_file();
+                            ui.horizontal(|ui| {
+                                if ui.button("Select End Image").clicked() {
+                                    let file = rfd::FileDialog::new()
+                                        .set_title("Choose end image (square aspect ratio recommended)")
+                                        .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
+                                        .pick_file();
 
-                            if let Some(path) = file {
-                                self.gui.configuring_generation = Some(path);
+                                    if let Some(path) = file {
+                                        self.gui.custom_end_image = Some(path);
+                                    }
+                                }
+                                
+                                if let Some(ref path) = self.gui.custom_end_image {
+                                    ui.label(format!("✓ {}", path.file_name().unwrap().to_string_lossy()));
+                                } else {
+                                    ui.label("No end image selected");
+                                }
+                            });
+
+                            if self.gui.custom_start_image.is_some() && self.gui.custom_end_image.is_some() {
+                                if ui.button("Generate Transformation").clicked() {
+                                    // Set up custom transformation with proper settings
+                                    self.gui.configuring_generation = self.gui.custom_start_image.clone();
+                                    // Update current settings for custom transformation
+                                    self.gui.current_settings.custom_target_image = self.gui.custom_end_image.clone();
+                                }
+                            } else {
+                                ui.add_enabled(false, egui::Button::new("Generate Transformation"));
+                                ui.label("Select both start and end images to generate transformation");
                             }
                         }
 
                         ui.separator();
+
+                        // Auto-resize setting
+                        ui.horizontal(|ui| {
+                            let tooltip = "When enabled, input & target images are downscaled so the longest side is 128px (keeps aspect ratio). Speeds generation & GIF saving.";
+                            if ui.checkbox(&mut self.gui.auto_resize_images, "Auto-resize (≤128px longest side)").on_hover_text(tooltip).changed() {
+                                // No immediate action needed; applied on next generation run.
+                            }
+                        });
 
                         if ui
                             .add(egui::Button::new(egui::RichText::new("✏")))
@@ -280,12 +420,16 @@ impl App for VoronoiApp {
                             Modal::new("configuring_generation".into()).show(ui.ctx(), |ui| {
                                 ui.vertical(|ui| {
                                     ui.label(
-                                        egui::RichText::new(format!(
-                                            "Obamifying: {}",
-                                            preset_path_to_name(
-                                                self.gui.configuring_generation.as_ref().unwrap()
+                                        egui::RichText::new(if self.gui.using_custom_images {
+                                            "Generating Custom Transformation".to_string()
+                                        } else {
+                                            format!(
+                                                "Obamifying: {}",
+                                                preset_path_to_name(
+                                                    self.gui.configuring_generation.as_ref().unwrap()
+                                                )
                                             )
-                                        ))
+                                        })
                                         .heading()
                                         .strong(),
                                     );
@@ -337,7 +481,13 @@ impl App for VoronoiApp {
                                             {
                                                 self.gui.show_progress_modal = true;
 
-                                                let settings = self.gui.current_settings;
+                                                let mut settings = self.gui.current_settings.clone();
+                                                // If using custom images, set the target image
+                                                if self.gui.using_custom_images {
+                                                    settings.custom_target_image = self.gui.custom_end_image.clone();
+                                                }
+                                                // Apply auto-resize setting
+                                                settings.auto_resize = self.gui.auto_resize_images;
                                                 self.gui.currently_processing = Some(path.clone());
                                                 //self.change_sim(device, path.clone(), false);
 
@@ -386,7 +536,11 @@ impl App for VoronoiApp {
                                 .movable(false)
                                 .anchor(egui::Align2::CENTER_BOTTOM, (0.0, 0.0))
                                 .show(ui.ctx(), |ui| {
-                                    let processing_label_message = "processing...";
+                                    let processing_label_message = if self.gui.using_custom_images {
+                                        "generating custom transformation..."
+                                    } else {
+                                        "processing..."
+                                    };
                                     ui.vertical(|ui| {
                                         ui.set_min_width(ui.available_width().min(400.0));
                                         if let Ok(msg) = self.progress_rx.try_recv() {
