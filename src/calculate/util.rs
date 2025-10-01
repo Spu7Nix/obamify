@@ -86,8 +86,19 @@ pub(crate) fn load_target(
     ),
     Box<dyn Error>,
 > {
-    let mut target = image::open(TARGET_IMAGE_PATH)?.to_rgb8();
-    let mut target_weights = image::open(TARGET_WEIGHTS_PATH)?.to_rgb8();
+    let mut target = if let Some(ref custom_target) = settings.custom_target_image {
+        image::open(custom_target)?.to_rgb8()
+    } else {
+        image::open(TARGET_IMAGE_PATH)?.to_rgb8()
+    };
+    
+    // For custom targets, we'll generate a default weights image (all white)
+    let mut target_weights = if settings.custom_target_image.is_some() {
+        // Create a white image with the same dimensions as target for default weights
+        image::ImageBuffer::from_pixel(target.width(), target.height(), image::Rgb([255, 255, 255]))
+    } else {
+        image::open(TARGET_WEIGHTS_PATH)?.to_rgb8()
+    };
     if target.dimensions().0 != target.dimensions().1 {
         return Err("Target image must be square".into());
     }

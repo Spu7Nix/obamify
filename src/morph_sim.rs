@@ -43,6 +43,18 @@ pub fn init_canvas(sidelen: u32, source: PathBuf) -> (u32, Vec<SeedPos>, Vec<See
     (seeds_n as u32, seeds, colors, sim)
 }
 
+pub fn init_custom_images(sidelen: u32, start_image: PathBuf, end_image: PathBuf, assignments: Vec<usize>) -> (u32, Vec<SeedPos>, Vec<SeedColor>, Sim) {
+    let (seeds, colors, seeds_n) = init_colors(sidelen, start_image.clone());
+    let mut sim = Sim::new(start_image);
+    sim.cells = vec![CellBody::new(0.0, 0.0, 0.0, 0.0, 0.0); seeds_n];
+
+    sim.set_assignments(assignments, sidelen);
+    for cell in &mut sim.cells {
+        cell.dst_force = 0.14;
+    }
+    (seeds_n as u32, seeds, colors, sim)
+}
+
 fn init_colors(sidelen: u32, imgpath: PathBuf) -> (Vec<SeedPos>, Vec<SeedColor>, usize) {
     let mut source = image::open(imgpath).unwrap().to_rgb8();
 

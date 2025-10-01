@@ -33,6 +33,9 @@ pub(crate) struct GuiState {
     pub presets: Vec<PathBuf>,
     pub current_settings: GenerationSettings,
     pub configuring_generation: Option<PathBuf>,
+    pub custom_start_image: Option<PathBuf>,
+    pub custom_end_image: Option<PathBuf>,
+    pub using_custom_images: bool,
 }
 
 impl GuiState {
@@ -50,6 +53,9 @@ impl GuiState {
             currently_processing: None,
             current_settings: GenerationSettings::default(),
             configuring_generation: None,
+            custom_start_image: None,
+            custom_end_image: None,
+            using_custom_images: false,
         }
     }
 }
@@ -225,43 +231,105 @@ impl App for VoronoiApp {
                         }
 
                         ui.separator();
-                        // choose preset
-                        // for (i, preset) in self.gui.presets.clone().into_iter().enumerate() {
-                        //     if ui.button(i.to_string()).clicked() {
-                        //         self.change_sim(device, preset);
-                        //         self.gui.animate = false;
-                        //     }
-                        // }
-                        ui.label("choose preset:");
-                        egui::ComboBox::from_label("")
-                            .selected_text({
-                                let name = self.sim.name();
-                                if name.chars().count() > 13 {
-                                    let truncated: String = name.chars().take(10).collect();
-                                    format!("{truncated}…")
-                                } else {
-                                    name.to_string()
+                        
+                        ui.horizontal(|ui| {
+                            ui.label("Mode:");
+                            if ui.radio(!self.gui.using_custom_images, "📂 Use Presets").clicked() {
+                                self.gui.using_custom_images = false;
+                                // Reset custom image selections when switching to presets
+                                self.gui.custom_start_image = None;
+                                self.gui.custom_end_image = None;
+                                if !self.gui.presets.is_empty() {
+                                    self.change_sim(device, self.gui.presets[0].clone());
+                                    self.gui.animate = false;
                                 }
-                            })
-                            .show_ui(ui, |ui| {
-                                for preset in self.gui.presets.clone().into_iter() {
-                                    if ui.button(preset_path_to_name(&preset)).clicked() {
-                                        // Call change_sim when a new preset is selected
-                                        self.change_sim(device, preset);
-                                        self.gui.animate = false;
+                            }
+                            if ui.radio(self.gui.using_custom_images, "🖼️ Custom Images").clicked() {
+                                self.gui.using_custom_images = true;
+                            }
+                        });
+
+                        if !self.gui.using_custom_images {
+                            // Preset mode
+                            ui.label("Choose preset:");
+                            egui::ComboBox::from_label("")
+                                .selected_text({
+                                    let name = self.sim.name();
+                                    if name.chars().count() > 13 {
+                                        let truncated: String = name.chars().take(10).collect();
+                                        format!("{truncated}…")
+                                    } else {
+                                        name.to_string()
                                     }
+                                })
+                                .show_ui(ui, |ui| {
+                                    for preset in self.gui.presets.clone().into_iter() {
+                                        if ui.button(preset_path_to_name(&preset)).clicked() {
+                                            // Call change_sim when a new preset is selected
+                                            self.change_sim(device, preset);
+                                            self.gui.animate = false;
+                                        }
+                                    }
+                                });
+                            if ui.button("obamify new image").clicked() {
+                                // open file select
+                                let file = rfd::FileDialog::new()
+                                    .set_title("choose image (square aspect ratio recommended)")
+                                    .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
+                                    .pick_file();
+
+                                if let Some(path) = file {
+                                    self.gui.configuring_generation = Some(path);
+                                }
+                            }
+                        } else {
+                            // Custom images mode
+                            ui.horizontal(|ui| {
+                                if ui.button("Select Start Image").clicked() {
+                                    let file = rfd::FileDialog::new()
+                                        .set_title("Choose start image (square aspect ratio recommended)")
+                                        .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
+                                        .pick_file();
+
+                                    if let Some(path) = file {
+                                        self.gui.custom_start_image = Some(path);
+                                    }
+                                }
+                                
+                                if let Some(ref path) = self.gui.custom_start_image {
+                                    ui.label(format!("✓ {}", path.file_name().unwrap().to_string_lossy()));
+                                } else {
+                                    ui.label("No start image selected");
                                 }
                             });
 
-                        if ui.button("obamify new image").clicked() {
-                            // open file select
-                            let file = rfd::FileDialog::new()
-                                .set_title("choose image (square aspect ratio recommended)")
-                                .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
-                                .pick_file();
+                            ui.horizontal(|ui| {
+                                if ui.button("Select End Image").clicked() {
+                                    let file = rfd::FileDialog::new()
+                                        .set_title("Choose end image (square aspect ratio recommended)")
+                                        .add_filter("image files", &["png", "jpg", "jpeg", "webp"])
+                                        .pick_file();
 
-                            if let Some(path) = file {
-                                self.gui.configuring_generation = Some(path);
+                                    if let Some(path) = file {
+                                        self.gui.custom_end_image = Some(path);
+                                    }
+                                }
+                                
+                                if let Some(ref path) = self.gui.custom_end_image {
+                                    ui.label(format!("✓ {}", path.file_name().unwrap().to_string_lossy()));
+                                } else {
+                                    ui.label("No end image selected");
+                                }
+                            });
+
+                            if self.gui.custom_start_image.is_some() && self.gui.custom_end_image.is_some() {
+                                if ui.button("Generate Transformation").clicked() {
+                                    // We'll set up custom transformation here
+                                    self.gui.configuring_generation = self.gui.custom_start_image.clone();
+                                }
+                            } else {
+                                ui.add_enabled(false, egui::Button::new("Generate Transformation"));
+                                ui.label("Select both start and end images to generate transformation");
                             }
                         }
 
@@ -280,12 +348,16 @@ impl App for VoronoiApp {
                             Modal::new("configuring_generation".into()).show(ui.ctx(), |ui| {
                                 ui.vertical(|ui| {
                                     ui.label(
-                                        egui::RichText::new(format!(
-                                            "Obamifying: {}",
-                                            preset_path_to_name(
-                                                self.gui.configuring_generation.as_ref().unwrap()
+                                        egui::RichText::new(if self.gui.using_custom_images {
+                                            "Generating Custom Transformation".to_string()
+                                        } else {
+                                            format!(
+                                                "Obamifying: {}",
+                                                preset_path_to_name(
+                                                    self.gui.configuring_generation.as_ref().unwrap()
+                                                )
                                             )
-                                        ))
+                                        })
                                         .heading()
                                         .strong(),
                                     );
@@ -337,7 +409,11 @@ impl App for VoronoiApp {
                                             {
                                                 self.gui.show_progress_modal = true;
 
-                                                let settings = self.gui.current_settings;
+                                                let mut settings = self.gui.current_settings.clone();
+                                                // If using custom images, set the target image
+                                                if self.gui.using_custom_images {
+                                                    settings.custom_target_image = self.gui.custom_end_image.clone();
+                                                }
                                                 self.gui.currently_processing = Some(path.clone());
                                                 //self.change_sim(device, path.clone(), false);
 
@@ -386,7 +462,11 @@ impl App for VoronoiApp {
                                 .movable(false)
                                 .anchor(egui::Align2::CENTER_BOTTOM, (0.0, 0.0))
                                 .show(ui.ctx(), |ui| {
-                                    let processing_label_message = "processing...";
+                                    let processing_label_message = if self.gui.using_custom_images {
+                                        "generating custom transformation..."
+                                    } else {
+                                        "processing..."
+                                    };
                                     ui.vertical(|ui| {
                                         ui.set_min_width(ui.available_width().min(400.0));
                                         if let Ok(msg) = self.progress_rx.try_recv() {

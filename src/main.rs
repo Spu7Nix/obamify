@@ -209,6 +209,11 @@ impl VoronoiApp {
         self.apply_sim_init(device, seed_count, seeds, colors, sim);
     }
 
+    pub fn change_custom_sim(&mut self, device: &wgpu::Device, start_image: PathBuf, end_image: PathBuf, assignments: Vec<usize>) {
+        let (seed_count, seeds, colors, sim) = morph_sim::init_custom_images(self.size.0, start_image, end_image, assignments);
+        self.apply_sim_init(device, seed_count, seeds, colors, sim);
+    }
+
     pub fn new(cc: &CreationContext<'_>) -> Self {
         let rs = cc
             .wgpu_render_state

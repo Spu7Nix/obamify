@@ -19,11 +19,12 @@ pub enum Algorithm {
     Genetic,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct GenerationSettings {
     pub proximity_importance: i64,
     pub algorithm: Algorithm,
     pub rescale: Option<u32>,
+    pub custom_target_image: Option<PathBuf>,
 }
 
 impl GenerationSettings {
@@ -32,6 +33,7 @@ impl GenerationSettings {
             proximity_importance: 10, // 20
             algorithm: Algorithm::Genetic,
             rescale: None,
+            custom_target_image: None,
         }
     }
 
