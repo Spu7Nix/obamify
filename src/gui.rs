@@ -10,6 +10,7 @@ use crate::calculate;
 use crate::calculate::GenerationSettings;
 use crate::calculate::ProgressMsg;
 use crate::morph_sim::preset_path_to_name;
+use crate::DEFAULT_RESOLUTION;
 use eframe::App;
 use eframe::Frame;
 use egui::Color32;
@@ -19,6 +20,29 @@ use image::buffer::ConvertBuffer;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ExportFormat {
+    Gif,
+    WebM,
+    Mp4,
+}
+
+impl Default for ExportFormat {
+    fn default() -> Self {
+        ExportFormat::Gif
+    }
+}
+
+impl std::fmt::Display for ExportFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExportFormat::Gif => write!(f, "GIF"),
+            ExportFormat::WebM => write!(f, "WebM"),
+            ExportFormat::Mp4 => write!(f, "MP4"),
+        }
+    }
+}
 
 pub(crate) struct GuiState {
     pub last_mouse_pos: Option<(f32, f32)>,
@@ -36,6 +60,8 @@ pub(crate) struct GuiState {
     pub custom_start_image: Option<PathBuf>,
     pub custom_end_image: Option<PathBuf>,
     pub using_custom_images: bool,
+    pub auto_resize_images: bool,
+    pub export_format: ExportFormat,
 }
 
 impl GuiState {
@@ -56,6 +82,8 @@ impl GuiState {
             custom_start_image: None,
             custom_end_image: None,
             using_custom_images: false,
+            auto_resize_images: true,
+            export_format: ExportFormat::default(),
         }
     }
 }
@@ -126,8 +154,9 @@ impl App for VoronoiApp {
                         self.gif_frame_count += 1;
 
                         if self.gif_frame_count >= GIF_NUM_FRAMES {
-                            // finish recording
-                            // self.stop_recording_gif(device);
+                            if let Some(_enc) = self.gif_encoder.take() {
+                                // dropping encoder flushes file
+                            }
                             if let GifStatus::Recording(Some(path)) = self.gif_status.clone() {
                                 self.gif_status = GifStatus::Complete(path);
                             } else {
@@ -136,7 +165,6 @@ impl App for VoronoiApp {
                                     self.gif_status
                                 ));
                             }
-
                             self.gui.animate = false;
                         }
                     }
@@ -225,9 +253,43 @@ impl App for VoronoiApp {
                             self.resize_textures(device, (GIF_RESOLUTION, GIF_RESOLUTION), false);
                             self.change_sim(device, self.sim.source_path());
                             self.gui.animate = true;
+                            self.gif_frame_count = 0; // reset counter
                             for _ in 0..20 {
                                 self.sim.update(&mut self.seeds, self.size.0);
                             }
+                        }
+
+                        // GIF recording progress / status
+                        match &self.gif_status {
+                            GifStatus::Recording(Some(_)) => {
+                                let progress = self.gif_frame_count as f32 / GIF_NUM_FRAMES as f32;
+                                ui.add(
+                                    egui::ProgressBar::new(progress)
+                                        .desired_width(120.0)
+                                        .text(format!("GIF {:3.0}%", progress * 100.0)),
+                                );
+                                if ui.button("cancel gif").clicked() {
+                                    // cancel: drop encoder
+                                    self.gif_encoder = None;
+                                    self.gif_status = GifStatus::None;
+                                    self.gif_frame_count = 0;
+                                    self.resize_textures(device, (DEFAULT_RESOLUTION, DEFAULT_RESOLUTION), false);
+                                    self.change_sim(device, self.sim.source_path());
+                                }
+                            }
+                            GifStatus::Complete(path) => {
+                                ui.colored_label(egui::Color32::LIGHT_GREEN, "GIF saved");
+                                if ui.button("open file").clicked() {
+                                    let _ = opener::open(path);
+                                }
+                                if ui.button("reset size").clicked() {
+                                    self.resize_textures(device, (DEFAULT_RESOLUTION, DEFAULT_RESOLUTION), false);
+                                }
+                            }
+                            GifStatus::Error(err) => {
+                                ui.colored_label(egui::Color32::RED, format!("gif error: {err}"));
+                            }
+                            _ => {}
                         }
 
                         ui.separator();
@@ -324,8 +386,10 @@ impl App for VoronoiApp {
 
                             if self.gui.custom_start_image.is_some() && self.gui.custom_end_image.is_some() {
                                 if ui.button("Generate Transformation").clicked() {
-                                    // We'll set up custom transformation here
+                                    // Set up custom transformation with proper settings
                                     self.gui.configuring_generation = self.gui.custom_start_image.clone();
+                                    // Update current settings for custom transformation
+                                    self.gui.current_settings.custom_target_image = self.gui.custom_end_image.clone();
                                 }
                             } else {
                                 ui.add_enabled(false, egui::Button::new("Generate Transformation"));
@@ -334,6 +398,14 @@ impl App for VoronoiApp {
                         }
 
                         ui.separator();
+
+                        // Auto-resize setting
+                        ui.horizontal(|ui| {
+                            let tooltip = "When enabled, input & target images are downscaled so the longest side is 128px (keeps aspect ratio). Speeds generation & GIF saving.";
+                            if ui.checkbox(&mut self.gui.auto_resize_images, "Auto-resize (≤128px longest side)").on_hover_text(tooltip).changed() {
+                                // No immediate action needed; applied on next generation run.
+                            }
+                        });
 
                         if ui
                             .add(egui::Button::new(egui::RichText::new("✏")))
@@ -414,6 +486,8 @@ impl App for VoronoiApp {
                                                 if self.gui.using_custom_images {
                                                     settings.custom_target_image = self.gui.custom_end_image.clone();
                                                 }
+                                                // Apply auto-resize setting
+                                                settings.auto_resize = self.gui.auto_resize_images;
                                                 self.gui.currently_processing = Some(path.clone());
                                                 //self.change_sim(device, path.clone(), false);
 

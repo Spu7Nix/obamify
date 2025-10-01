@@ -25,6 +25,7 @@ pub struct GenerationSettings {
     pub algorithm: Algorithm,
     pub rescale: Option<u32>,
     pub custom_target_image: Option<PathBuf>,
+    pub auto_resize: bool,
 }
 
 impl GenerationSettings {
@@ -34,6 +35,7 @@ impl GenerationSettings {
             algorithm: Algorithm::Genetic,
             rescale: None,
             custom_target_image: None,
+            auto_resize: true,
         }
     }
 
