@@ -16,7 +16,8 @@ revolutionary new technology that turns any image into obama
 # Installations
 
 Install the latest version in [releases](https://github.com/Spu7Nix/obamify/releases). Unzip and run the .exe file inside!
-
+**Note for macOS users:**
+Run 'xattr -C <path/to/app.app>' in your terminal to remove the damaged app warning. 
 ### Building from source
 
 1. Install [Rust](https://www.rust-lang.org/tools/install)
