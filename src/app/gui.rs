@@ -54,10 +54,16 @@ pub(crate) struct GuiState {
     configuring_generation: Option<(SourceImg, GenerationSettings, GuiImageCache)>,
     pub current_preset: usize,
     error_message: Option<String>,
+
+    has_obamified_once: bool,
 }
 
 impl GuiState {
-    pub fn default(presets: Vec<Preset>, current_preset: usize) -> GuiState {
+    pub fn default(
+        presets: Vec<Preset>,
+        current_preset: usize,
+        has_obamified_once: bool,
+    ) -> GuiState {
         GuiState {
             animate: true,
             //fps_text: String::new(),
@@ -75,6 +81,7 @@ impl GuiState {
             configuring_generation: None,
             current_preset,
             error_message: None,
+            has_obamified_once,
         }
     }
 
@@ -128,6 +135,7 @@ fn hide_icons() {
 impl App for ObamifyApp {
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         eframe::set_value(storage, "presets", &self.gui.presets);
+        eframe::set_value(storage, "has_obamified_once", &self.gui.has_obamified_once);
     }
     fn update(&mut self, ctx: &egui::Context, frame: &mut Frame) {
         let Some(rs) = frame.wgpu_render_state() else {
@@ -331,7 +339,14 @@ impl App for ObamifyApp {
                             });
                             ui.separator();
 
-                            if ui.button("save gif").clicked() {
+                            if ui
+                                .button(if self.reverse {
+                                    "save reverse gif"
+                                } else {
+                                    "save gif"
+                                })
+                                .clicked()
+                            {
                                 self.gif_recorder.status = GifStatus::Recording;
                                 self.gif_recorder.encoder = None;
                                 if let Err(err) = self
@@ -460,7 +475,25 @@ impl App for ObamifyApp {
                                         }
                                     });
 
-                                if ui.button("obamify new image").clicked() {
+                                // Make button glow if user hasn't obamified once
+                                let button_response = if !self.gui.has_obamified_once {
+                                    // Create a glowing effect by animating the button outline
+                                    let time = ui.input(|i| i.time);
+                                    let pulse = ((time * 2.0).sin() * 0.5 + 0.5) as f32;
+                                    let glow_color = egui::Color32::from_rgb(
+                                        (30.0 + pulse * 100.0) as u8,
+                                        (120.0 + pulse * 135.0) as u8,
+                                        (200.0 + pulse * 55.0) as u8,
+                                    );
+
+                                    let button = egui::Button::new("obamify new image")
+                                        .stroke(egui::Stroke::new(1.0, glow_color));
+                                    ui.add(button)
+                                } else {
+                                    ui.button("obamify new image")
+                                };
+
+                                if button_response.clicked() {
                                     // open file select
                                     prompt_image(
                                         "choose image to obamify",
@@ -793,6 +826,7 @@ impl App for ObamifyApp {
                                         self.gui.presets.len() - 1,
                                     );
                                     self.gui.animate = true;
+                                    self.gui.has_obamified_once = true;
                                     self.gui.hide_progress_modal();
                                     ui.close();
                                     break;

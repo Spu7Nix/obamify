@@ -267,6 +267,12 @@ impl ObamifyApp {
             get_presets()
         };
 
+        let has_obamified_once = if let Some(storage) = cc.storage {
+            eframe::get_value::<bool>(storage, "has_obamified_once").unwrap_or(false)
+        } else {
+            false
+        };
+
         #[cfg(target_arch = "wasm32")]
         let random_preset = (js_sys::Math::random() * (presets.len() as f64)) as usize;
 
@@ -792,7 +798,7 @@ impl ObamifyApp {
             preview_image: None,
             #[cfg(not(target_arch = "wasm32"))]
             stroke_count: 0,
-            gui: gui::GuiState::default(presets, random_preset),
+            gui: gui::GuiState::default(presets, random_preset, has_obamified_once),
             frame_count: 0,
             #[cfg(not(target_arch = "wasm32"))]
             current_drawing_id: Arc::new(AtomicU32::new(0)),
