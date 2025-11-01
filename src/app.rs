@@ -161,6 +161,8 @@ pub struct ObamifyApp {
     #[cfg(not(target_arch = "wasm32"))]
     current_drawing_id: Arc<AtomicU32>,
     current_filter_mode: wgpu::FilterMode,
+
+    reverse: bool,
 }
 
 impl ObamifyApp {
@@ -231,7 +233,8 @@ impl ObamifyApp {
         source: Preset,
         change_index: usize,
     ) {
-        let (seed_count, seeds, colors, sim) = morph_sim::init_image(self.size.0, source);
+        let (seed_count, mut seeds, colors, mut sim) = morph_sim::init_image(self.size.0, source);
+        sim.prepare_play(&mut seeds, self.reverse);
         self.apply_sim_init(device, queue, seed_count, seeds, colors, sim);
         self.gui.current_preset = change_index;
     }
@@ -798,6 +801,8 @@ impl ObamifyApp {
             #[cfg(target_arch = "wasm32")]
             inbox: Vec::new(),
             current_filter_mode: wgpu::FilterMode::Linear,
+
+            reverse: false,
         }
     }
 

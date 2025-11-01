@@ -231,6 +231,14 @@ impl GifRecorder {
             self.should_stop
         }
     }
+
+    pub(crate) fn get_name(&self, name: String, reverse: bool) -> String {
+        if reverse {
+            format!("unobamify_{}", name)
+        } else {
+            format!("obamify_{}", name)
+        }
+    }
 }
 
 impl ObamifyApp {

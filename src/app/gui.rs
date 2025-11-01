@@ -216,7 +216,9 @@ impl App for ObamifyApp {
 
                             if self.gif_recorder.should_stop() {
                                 // finish recording
-                                if !self.gif_recorder.finish(self.sim.name()) {
+                                if !self.gif_recorder.finish(
+                                    self.gif_recorder.get_name(self.sim.name(), self.reverse),
+                                ) {
                                     // cancelled
                                     self.stop_recording_gif(device, &rs.queue);
                                 }
@@ -311,28 +313,21 @@ impl App for ObamifyApp {
 
                         GuiMode::Transform => {
                             ui.horizontal_wrapped(|ui| {
+                                if ui.add(egui::Button::new("play transformation")).clicked() {
+                                    self.gui.animate = true;
+                                    self.sim.prepare_play(&mut self.seeds, self.reverse);
+                                }
                                 if ui
-                                    .add_enabled(
-                                        !self.gui.animate,
-                                        egui::Button::new("play transformation"), //.fill(egui::Color32::from_rgb(47, 92, 34)),
-                                    )
-                                    .clicked()
+                                    .add(egui::Checkbox::new(&mut self.reverse, "reverse"))
+                                    .changed()
                                 {
                                     self.gui.animate = true;
-                                }
-                                if ui
-                                    .add_enabled(
-                                        self.gui.animate,
-                                        egui::Button::new("switch target"),
-                                    )
-                                    .clicked()
-                                {
-                                    self.sim.switch();
-                                }
-                                if ui.button("reload").clicked() {
                                     self.reset_sim(device, &rs.queue);
-                                    self.gui.animate = false;
                                 }
+                                // if ui.button("reload").clicked() {
+                                //     self.reset_sim(device, &rs.queue);
+                                //     self.gui.animate = false;
+                                // }
                             });
                             ui.separator();
 
@@ -436,7 +431,7 @@ impl App for ObamifyApp {
                                                         preset.clone(),
                                                         i,
                                                     );
-                                                    self.gui.animate = false;
+                                                    self.gui.animate = true;
                                                     self.gui.current_preset = i;
                                                     close_menu = true;
                                                 }

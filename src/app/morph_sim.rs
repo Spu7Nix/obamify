@@ -23,7 +23,7 @@ pub fn init_image(sidelen: u32, source: Preset) -> (u32, Vec<SeedPos>, Vec<SeedC
 
     sim.set_assignments(assignments, sidelen);
     for cell in &mut sim.cells {
-        cell.dst_force = 0.14;
+        cell.dst_force = 0.13;
     }
     (seeds_n as u32, seeds, colors, sim)
 }
@@ -100,10 +100,10 @@ pub struct CellBody {
 
 const PERSONAL_SPACE: f32 = 0.95;
 const MAX_VELOCITY: f32 = 6.0;
-const ALIGNMENT_FACTOR: f32 = 0.7;
+const ALIGNMENT_FACTOR: f32 = 0.8;
 
 fn factor_curve(x: f32) -> f32 {
-    (x * x * x).min(10.0)
+    (x * x * x).min(1000.0)
 }
 
 impl CellBody {
@@ -186,22 +186,11 @@ impl CellBody {
             self.accy -= dy * weight;
         } else if dist.abs() < f32::EPSILON {
             // if they are exactly on top of each other, push in a random direction
-            // deterministic pseudo-random push based on position
-            let x_bits = pos.xy[0].to_bits();
-            let y_bits = pos.xy[1].to_bits();
-            let mut h = x_bits ^ y_bits.rotate_left(16) ^ 0x9E3779B9;
-            h ^= h >> 15;
-            h = h.wrapping_mul(0x85EB_CA6B);
-            h ^= h >> 13;
-            let hx = h;
+            let seed = (pos.xy[0].to_bits() as u64) ^ ((pos.xy[1].to_bits() as u64) << 32);
+            let mut rng = frand::Rand::with_seed(seed);
 
-            let mut h2 = hx ^ 0xC2B2_AE35;
-            h2 ^= h2 >> 16;
-            h2 = h2.wrapping_mul(0x27D4_EB2D);
-            h2 ^= h2 >> 15;
-
-            let r1 = (hx as f32) / (u32::MAX as f32); // [0, 1)
-            let r2 = (h2 as f32) / (u32::MAX as f32); // [0, 1)
+            let r1 = rng.gen_range(0.0..1.0);
+            let r2 = rng.gen_range(0.0..1.0);
 
             self.accx += (r1 - 0.5) * 0.1;
             self.accy += (r2 - 0.5) * 0.1;
@@ -236,6 +225,7 @@ pub struct Sim {
     //elapsed_frames: u32,
     pub cells: Vec<CellBody>,
     name: String,
+    reversed: bool,
 }
 
 impl Sim {
@@ -244,6 +234,7 @@ impl Sim {
             cells: Vec::new(),
             //elapsed_frames: 0,
             name,
+            reversed: false,
         }
     }
 
@@ -261,6 +252,7 @@ impl Sim {
             mem::swap(&mut cell.srcy, &mut cell.dsty);
             cell.age = 0;
         }
+        self.reversed = !self.reversed;
     }
 
     pub fn update(&mut self, positions: &mut [SeedPos], sidelen: u32) {
@@ -364,6 +356,22 @@ impl Sim {
 
             self.cells[*src_idx].age = prev.age;
             self.cells[*src_idx].stroke_id = prev.stroke_id;
+        }
+    }
+
+    pub(crate) fn prepare_play(&mut self, positions: &mut [SeedPos], reverse: bool) {
+        if self.reversed == reverse {
+            for (i, cell) in self.cells.iter_mut().enumerate() {
+                positions[i].xy[0] = cell.srcx;
+                positions[i].xy[1] = cell.srcy;
+                cell.age = 0;
+            }
+        } else {
+            for (i, cell) in self.cells.iter().enumerate() {
+                positions[i].xy[0] = cell.dstx;
+                positions[i].xy[1] = cell.dsty;
+            }
+            self.switch();
         }
     }
 }
