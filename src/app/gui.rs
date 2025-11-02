@@ -52,6 +52,7 @@ pub(crate) struct GuiState {
     pub presets: Vec<Preset>,
     //pub current_settings: GenerationSettings,
     configuring_generation: Option<(SourceImg, GenerationSettings, GuiImageCache)>,
+    saved_config: Option<(SourceImg, GenerationSettings)>,
     pub current_preset: usize,
     error_message: Option<String>,
 
@@ -79,6 +80,7 @@ impl GuiState {
             //currently_processing: None,
             //current_settings: GenerationSettings::default(),
             configuring_generation: None,
+            saved_config: None,
             current_preset,
             error_message: None,
             has_obamified_once,
@@ -495,20 +497,30 @@ impl App for ObamifyApp {
 
                                 if button_response.clicked() {
                                     // open file select
-                                    prompt_image(
-                                        "choose image to obamify",
-                                        self,
-                                        |name: String, mut img: SourceImg, app: &mut ObamifyApp| {
-                                            img = ensure_reasonable_size(img);
-                                            app.gui.configuring_generation = Some((
-                                                img,
-                                                GenerationSettings::default(Uuid::new_v4(), name),
-                                                GuiImageCache::default(),
-                                            ));
-                                            #[cfg(target_arch = "wasm32")]
-                                            hide_icons();
-                                        },
-                                    );
+                                    if let Some((ref img, ref settings)) = self.gui.saved_config {
+                                        self.gui.configuring_generation = Some((
+                                            img.clone(),
+                                            settings.clone_with_new_id(),
+                                            GuiImageCache::default(),
+                                        ));
+                                        #[cfg(target_arch = "wasm32")]
+                                        hide_icons();
+                                    } else {
+                                        prompt_image(
+                                            "choose image to obamify",
+                                            self,
+                                            |name: String, mut img: SourceImg, app: &mut ObamifyApp| {
+                                                img = ensure_reasonable_size(img);
+                                                app.gui.configuring_generation = Some((
+                                                    img,
+                                                    GenerationSettings::default(Uuid::new_v4(), name),
+                                                    GuiImageCache::default(),
+                                                ));
+                                                #[cfg(target_arch = "wasm32")]
+                                                hide_icons();
+                                            },
+                                        );
+                                    }
                                 }
                             });
                             ui.separator();
@@ -732,6 +744,8 @@ impl App for ObamifyApp {
                                         self.gui.configuring_generation.take()
                                     {
                                         self.gui.show_progress_modal(settings.id);
+                                        self.gui.saved_config =
+                                            Some((img.clone(), settings.clone()));
                                         //self.gui.currently_processing = Some(path.clone());
                                         //self.change_sim(device, path.clone(), false);
 

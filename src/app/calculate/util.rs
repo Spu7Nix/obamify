@@ -122,7 +122,7 @@ pub enum Algorithm {
     Genetic,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GenerationSettings {
     pub id: Uuid,
     pub name: String,
@@ -181,6 +181,25 @@ impl GenerationSettings {
         let (w, h) = img.dimensions();
         let data = img.into_raw();
         self.custom_target = Some((w, h, data));
+    }
+
+    pub fn clone_with_new_id(&self) -> Self {
+        let mut new = self.clone();
+        new.id = Uuid::new_v4();
+
+        new.name = if let Some(v_pos) = self.name.rfind(" v") {
+            let potential_version = &self.name[v_pos + 2..];
+            if let Ok(version) = potential_version.parse::<u32>() {
+                let base_name = &self.name[..v_pos];
+                format!("{} v{}", base_name, version + 1)
+            } else {
+                format!("{} v2", self.name)
+            }
+        } else {
+            format!("{} v2", self.name)
+        };
+
+        new
     }
 }
 
