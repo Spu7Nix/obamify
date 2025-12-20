@@ -607,29 +607,50 @@ pub fn process_auction<S: ProgressSink>(
         ) as f64)
     };
     
-    // Epsilon scaling - start large, decrease for precision
-    let mut epsilon = (n as f64).sqrt();
-    let epsilon_min = 1.0 / (n as f64);
+    // Epsilon determines minimum bid increment - smaller = more precise but slower
+    let epsilon = 1.0 / (n as f64 + 1.0);
     
     let mut iteration = 0;
-    let max_iterations = n * 10;
+    let max_iterations = n * 20; // Generous limit
+    let mut stale_count = 0;
+    let max_stale = 100; // If no progress for 100 iterations, we're stuck
+    let mut last_unassigned_count = n;
     
-    while epsilon >= epsilon_min && iteration < max_iterations {
+    while iteration < max_iterations {
         // Find unassigned targets
         let unassigned: Vec<usize> = (0..n)
             .filter(|&i| target_to_source[i].is_none())
             .collect();
         
-        if unassigned.is_empty() {
-            // All assigned, reduce epsilon and reset for refinement
-            epsilon *= 0.5;
-            if epsilon < epsilon_min {
+        let current_unassigned = unassigned.len();
+        
+        // Check if we're done
+        if current_unassigned == 0 {
+            break; // All assigned!
+        }
+        
+        // Detect if we're stuck (no progress)
+        if current_unassigned >= last_unassigned_count {
+            stale_count += 1;
+            if stale_count >= max_stale {
+                // We're stuck in a cycle - just assign remaining greedily
+                _debug_print(format!("Auction stuck at {} unassigned, finishing greedily", current_unassigned));
+                
+                // Find unassigned sources
+                let unassigned_sources: Vec<usize> = (0..n)
+                    .filter(|&i| source_to_target[i].is_none())
+                    .collect();
+                
+                // Greedily assign remaining
+                for (&target_idx, &source_idx) in unassigned.iter().zip(unassigned_sources.iter()) {
+                    target_to_source[target_idx] = Some(source_idx);
+                    source_to_target[source_idx] = Some(target_idx);
+                }
                 break;
             }
-            // Reset assignments for next scaling phase
-            target_to_source = vec![None; n];
-            source_to_target = vec![None; n];
-            continue;
+        } else {
+            stale_count = 0;
+            last_unassigned_count = current_unassigned;
         }
         
         #[cfg(not(target_arch = "wasm32"))]
@@ -640,48 +661,55 @@ pub fn process_auction<S: ProgressSink>(
             }
         }
         
-        // Each unassigned target bids
-        for &target_idx in &unassigned {
-            // Find best and second-best source for this target
-            let mut best_source = 0;
-            let mut best_value = f64::NEG_INFINITY;
-            let mut second_best_value = f64::NEG_INFINITY;
-            
-            for source_idx in 0..n {
-                let value = cost(target_idx, source_idx) - prices[source_idx];
-                if value > best_value {
-                    second_best_value = best_value;
-                    best_value = value;
-                    best_source = source_idx;
-                } else if value > second_best_value {
-                    second_best_value = value;
-                }
+        // Process ONE unassigned target per iteration (Gauss-Seidel style - more stable)
+        // This avoids the issue of all unassigned targets bidding simultaneously and creating cycles
+        let target_idx = unassigned[iteration % unassigned.len()];
+        
+        // Find best and second-best source for this target
+        let mut best_source = 0;
+        let mut best_value = f64::NEG_INFINITY;
+        let mut second_best_value = f64::NEG_INFINITY;
+        
+        for source_idx in 0..n {
+            let value = cost(target_idx, source_idx) - prices[source_idx];
+            if value > best_value {
+                second_best_value = best_value;
+                best_value = value;
+                best_source = source_idx;
+            } else if value > second_best_value {
+                second_best_value = value;
             }
-            
-            // Calculate bid increment
-            let bid_increment = best_value - second_best_value + epsilon;
-            
-            // If source was assigned to someone else, unassign them
-            if let Some(old_target) = source_to_target[best_source] {
-                target_to_source[old_target] = None;
-            }
-            
-            // Assign and update price
-            target_to_source[target_idx] = Some(best_source);
-            source_to_target[best_source] = Some(target_idx);
-            prices[best_source] += bid_increment;
         }
+        
+        // Handle case where second_best is still NEG_INFINITY
+        if second_best_value == f64::NEG_INFINITY {
+            second_best_value = best_value - epsilon;
+        }
+        
+        // Calculate bid increment
+        let bid_increment = best_value - second_best_value + epsilon;
+        
+        // If source was assigned to someone else, unassign them
+        if let Some(old_target) = source_to_target[best_source] {
+            target_to_source[old_target] = None;
+        }
+        
+        // Assign and update price
+        target_to_source[target_idx] = Some(best_source);
+        source_to_target[best_source] = Some(target_idx);
+        prices[best_source] += bid_increment;
         
         iteration += 1;
         
         // Progress update
-        if iteration % 100 == 0 {
-            let assigned_count = target_to_source.iter().filter(|x| x.is_some()).count();
-            tx.send(ProgressMsg::Progress(assigned_count as f32 / n as f32 * 0.9));
+        if iteration % 200 == 0 {
+            let assigned_count = n - current_unassigned;
+            tx.send(ProgressMsg::Progress(assigned_count as f32 / n as f32));
             
             // Create partial preview
             let partial_assignments: Vec<usize> = target_to_source.iter()
-                .map(|opt| opt.unwrap_or(0))
+                .enumerate()
+                .map(|(i, opt)| opt.unwrap_or(i))
                 .collect();
             let data = make_new_img(&source_pixels, &partial_assignments, settings.sidelen);
             tx.send(ProgressMsg::UpdatePreview {
@@ -692,7 +720,7 @@ pub fn process_auction<S: ProgressSink>(
         }
     }
     
-    // Extract final assignments
+    // Extract final assignments - any remaining unassigned get identity mapping
     let assignments: Vec<usize> = target_to_source.iter()
         .enumerate()
         .map(|(i, opt)| opt.unwrap_or(i))
