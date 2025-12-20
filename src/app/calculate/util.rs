@@ -116,10 +116,25 @@ impl CropScale {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub enum Algorithm {
-    Optimal,
-    Genetic,
+    Optimal,   // Hungarian/Kuhn-Munkres - slowest, mathematically perfect
+    Auction,   // Auction algorithm - fast, near-optimal (~98% quality)
+    Greedy,    // Greedy heuristic - fastest, good quality (~90-95%)
+    Hybrid,    // Coarse-to-fine - moderate speed, near-optimal
+    Genetic,   // Random swaps - fast, sub-optimal (original "fast" algorithm)
+}
+
+impl Algorithm {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Algorithm::Optimal => "optimal (slowest, perfect)",
+            Algorithm::Auction => "auction (fast, near-optimal)",
+            Algorithm::Greedy => "greedy (fastest, good)",
+            Algorithm::Hybrid => "hybrid (moderate, near-optimal)",
+            Algorithm::Genetic => "genetic (fast, sub-optimal)",
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]

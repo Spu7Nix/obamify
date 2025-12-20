@@ -691,7 +691,7 @@ impl App for ObamifyApp {
                                                     [slider_w, 20.0],
                                                     egui::Slider::new(
                                                         &mut settings.sidelen,
-                                                        64..=256,
+                                                        64..=512,
                                                     )
                                                     .text("resolution"),
                                                 );
@@ -706,28 +706,24 @@ impl App for ObamifyApp {
                                                     .text("proximity importance"),
                                                 );
 
-                                                let mut algorithm = match settings.algorithm {
-                                                    calculate::util::Algorithm::Optimal => {
-                                                        "optimal algorithm"
-                                                    }
-                                                    calculate::util::Algorithm::Genetic => {
-                                                        "fast algorithm"
-                                                    }
-                                                };
-
                                                 egui::ComboBox::from_id_salt("algorithm_select")
-                                                    .selected_text(algorithm)
+                                                    .selected_text(settings.algorithm.display_name())
                                                     .show_ui(ui, |ui| {
-                                                        if ui.button("optimal algorithm").clicked()
-                                                        {
-                                                            algorithm = "optimal algorithm";
-                                                            settings.algorithm =
-                                                                calculate::util::Algorithm::Optimal;
-                                                        }
-                                                        if ui.button("fast algorithm").clicked() {
-                                                            algorithm = "fast algorithm";
-                                                            settings.algorithm =
-                                                                calculate::util::Algorithm::Genetic;
+                                                        use calculate::util::Algorithm;
+                                                        let algorithms = [
+                                                            Algorithm::Greedy,
+                                                            Algorithm::Auction,
+                                                            Algorithm::Hybrid,
+                                                            Algorithm::Genetic,
+                                                            Algorithm::Optimal,
+                                                        ];
+                                                        for algo in algorithms {
+                                                            if ui.selectable_label(
+                                                                settings.algorithm == algo,
+                                                                algo.display_name()
+                                                            ).clicked() {
+                                                                settings.algorithm = algo;
+                                                            }
                                                         }
                                                     });
                                             },
