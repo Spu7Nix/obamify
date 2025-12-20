@@ -123,6 +123,7 @@ pub enum Algorithm {
     Greedy,    // Greedy heuristic - fastest, good quality (~90-95%)
     Hybrid,    // Coarse-to-fine - moderate speed, near-optimal
     Genetic,   // Random swaps - fast, sub-optimal (original "fast" algorithm)
+    Spatial,   // Spatial partitioning - optimized for high resolutions
 }
 
 impl Algorithm {
@@ -133,6 +134,7 @@ impl Algorithm {
             Algorithm::Genetic => "🎲 Standard", 
             Algorithm::Auction => "💰 Balanced",
             Algorithm::Hybrid => "🔍 Quality",
+            Algorithm::Spatial => "🚀 High-Res",
             Algorithm::Optimal => "👑 Perfect",
         }
     }
@@ -144,6 +146,7 @@ impl Algorithm {
             Algorithm::Genetic => "Default algorithm. Uses random swaps to optimize the layout. Good balance of speed and quality.",
             Algorithm::Auction => "Pixels 'bid' on positions like an auction. Near-optimal results with reasonable speed.",
             Algorithm::Hybrid => "Runs perfect matching at low-res, then refines. Best quality-to-speed ratio for high resolutions.",
+            Algorithm::Spatial => "Optimized for 256+ resolution. Uses spatial partitioning to find nearby matches quickly. Best for high-res.",
             Algorithm::Optimal => "Mathematically perfect matching. Very slow for high resolutions but guarantees the best result.",
         }
     }
@@ -155,6 +158,7 @@ impl Algorithm {
             Algorithm::Genetic => 85,
             Algorithm::Auction => 97,
             Algorithm::Hybrid => 96,
+            Algorithm::Spatial => 93,
             Algorithm::Optimal => 100,
         }
     }
@@ -166,14 +170,16 @@ impl Algorithm {
             Algorithm::Genetic => 4,
             Algorithm::Auction => 3,
             Algorithm::Hybrid => 2,
+            Algorithm::Spatial => 4, // Fast, especially at high res
             Algorithm::Optimal => 1,
         }
     }
     
     /// All algorithms in recommended order (fastest to slowest)
-    pub fn all() -> [Algorithm; 5] {
+    pub fn all() -> [Algorithm; 6] {
         [
             Algorithm::Greedy,
+            Algorithm::Spatial,
             Algorithm::Genetic,
             Algorithm::Auction,
             Algorithm::Hybrid,

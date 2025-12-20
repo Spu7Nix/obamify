@@ -1,8 +1,8 @@
-mod calculate;
+pub mod calculate;
 mod gif_recorder;
 mod gui;
 mod morph_sim;
-mod preset;
+pub mod preset;
 
 #[cfg(target_arch = "wasm32")]
 pub use crate::app::calculate::worker::worker_entry;
