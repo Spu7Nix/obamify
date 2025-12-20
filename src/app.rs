@@ -1806,6 +1806,8 @@ macro_rules! include_presets {
                             .split(',')
                             .map(|s| s.parse().unwrap())
                             .collect::<Vec<usize>>(),
+                        color_shift: 0.0,
+                        target_colors: Vec::new(),
                     }
                 }),*
             ]

@@ -708,24 +708,59 @@ impl App for ObamifyApp {
 
                                                 egui::ComboBox::from_id_salt("algorithm_select")
                                                     .selected_text(settings.algorithm.display_name())
+                                                    .width(180.0)
                                                     .show_ui(ui, |ui| {
                                                         use calculate::util::Algorithm;
-                                                        let algorithms = [
-                                                            Algorithm::Greedy,
-                                                            Algorithm::Auction,
-                                                            Algorithm::Hybrid,
-                                                            Algorithm::Genetic,
-                                                            Algorithm::Optimal,
-                                                        ];
-                                                        for algo in algorithms {
-                                                            if ui.selectable_label(
+                                                        for algo in Algorithm::all() {
+                                                            let speed = algo.speed_rating();
+                                                            let quality = algo.quality_estimate();
+                                                            let speed_bar = "▰".repeat(speed as usize) + &"▱".repeat(5 - speed as usize);
+                                                            let label = format!(
+                                                                "{} │ {} │ {}%",
+                                                                algo.display_name(),
+                                                                speed_bar,
+                                                                quality
+                                                            );
+                                                            let response = ui.selectable_label(
                                                                 settings.algorithm == algo,
-                                                                algo.display_name()
-                                                            ).clicked() {
+                                                                label
+                                                            );
+                                                            if response.clicked() {
                                                                 settings.algorithm = algo;
                                                             }
+                                                            response.on_hover_text(algo.description());
                                                         }
                                                     });
+                                                
+                                                // Show current algorithm description below
+                                                ui.label(
+                                                    egui::RichText::new(settings.algorithm.description())
+                                                        .weak()
+                                                        .small()
+                                                );
+                                                
+                                                ui.add_space(8.0);
+                                                
+                                                // Color shift slider
+                                                let slider_w = ui.available_width().min(260.0);
+                                                ui.add_sized(
+                                                    [slider_w, 20.0],
+                                                    egui::Slider::new(
+                                                        &mut settings.color_shift,
+                                                        0.0..=1.0,
+                                                    )
+                                                    .text("color morph")
+                                                    .custom_formatter(|v, _| {
+                                                        if v < 0.01 { "off".to_string() }
+                                                        else if v < 0.3 { format!("{:.0}% subtle", v * 100.0) }
+                                                        else if v < 0.7 { format!("{:.0}% medium", v * 100.0) }
+                                                        else { format!("{:.0}% strong", v * 100.0) }
+                                                    })
+                                                ).on_hover_text(
+                                                    "How much pixels can shift color during the transition.\n\
+                                                     0% = original colors preserved\n\
+                                                     100% = colors fully morph to target"
+                                                );
                                             },
                                         );
                                     });

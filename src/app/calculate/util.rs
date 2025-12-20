@@ -126,14 +126,59 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
+    /// Short display name for the dropdown
     pub fn display_name(&self) -> &'static str {
         match self {
-            Algorithm::Optimal => "optimal (slowest, perfect)",
-            Algorithm::Auction => "auction (fast, near-optimal)",
-            Algorithm::Greedy => "greedy (fastest, good)",
-            Algorithm::Hybrid => "hybrid (moderate, near-optimal)",
-            Algorithm::Genetic => "genetic (fast, sub-optimal)",
+            Algorithm::Greedy => "⚡ Quick",
+            Algorithm::Genetic => "🎲 Standard", 
+            Algorithm::Auction => "💰 Balanced",
+            Algorithm::Hybrid => "🔍 Quality",
+            Algorithm::Optimal => "👑 Perfect",
         }
+    }
+    
+    /// Detailed description for tooltips/UI
+    pub fn description(&self) -> &'static str {
+        match self {
+            Algorithm::Greedy => "Fastest option. Assigns each pixel to its best available match in order of importance. Great for previews.",
+            Algorithm::Genetic => "Default algorithm. Uses random swaps to optimize the layout. Good balance of speed and quality.",
+            Algorithm::Auction => "Pixels 'bid' on positions like an auction. Near-optimal results with reasonable speed.",
+            Algorithm::Hybrid => "Runs perfect matching at low-res, then refines. Best quality-to-speed ratio for high resolutions.",
+            Algorithm::Optimal => "Mathematically perfect matching. Very slow for high resolutions but guarantees the best result.",
+        }
+    }
+    
+    /// Estimated quality percentage
+    pub fn quality_estimate(&self) -> u8 {
+        match self {
+            Algorithm::Greedy => 90,
+            Algorithm::Genetic => 85,
+            Algorithm::Auction => 97,
+            Algorithm::Hybrid => 96,
+            Algorithm::Optimal => 100,
+        }
+    }
+    
+    /// Relative speed (1-5, higher is faster)
+    pub fn speed_rating(&self) -> u8 {
+        match self {
+            Algorithm::Greedy => 5,
+            Algorithm::Genetic => 4,
+            Algorithm::Auction => 3,
+            Algorithm::Hybrid => 2,
+            Algorithm::Optimal => 1,
+        }
+    }
+    
+    /// All algorithms in recommended order (fastest to slowest)
+    pub fn all() -> [Algorithm; 5] {
+        [
+            Algorithm::Greedy,
+            Algorithm::Genetic,
+            Algorithm::Auction,
+            Algorithm::Hybrid,
+            Algorithm::Optimal,
+        ]
     }
 }
 
@@ -144,6 +189,10 @@ pub struct GenerationSettings {
 
     pub proximity_importance: i64,
     pub algorithm: Algorithm,
+    
+    /// How much colors can shift toward their target (0.0 = none, 1.0 = full morph)
+    /// During animation, colors will interpolate: source + color_shift * (target - source)
+    pub color_shift: f32,
 
     pub sidelen: u32,
     custom_target: Option<(u32, u32, Vec<u8>)>,
@@ -157,8 +206,9 @@ impl GenerationSettings {
     pub fn default(id: Uuid, name: String) -> Self {
         Self {
             name,
-            proximity_importance: 13, // 20
+            proximity_importance: 13,
             algorithm: Algorithm::Genetic,
+            color_shift: 0.0, // No color shifting by default
             id,
             sidelen: 128,
             custom_target: None,

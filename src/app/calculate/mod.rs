@@ -39,6 +39,48 @@ fn heuristic(
     color * color_weight + (spatial * spatial_weight).pow(2)
 }
 
+/// Helper function to create a Preset with color morphing support
+fn make_preset(
+    name: String,
+    sidelen: u32,
+    source_pixels: Vec<(u8, u8, u8)>,
+    assignments: Vec<usize>,
+    settings: &GenerationSettings,
+    target_pixels: &[(u8, u8, u8)],
+) -> Preset {
+    // Reorder target colors according to assignments so each source pixel
+    // knows what color it should morph toward
+    let target_colors: Vec<u8> = if settings.color_shift > 0.0 {
+        assignments.iter()
+            .map(|&src_idx| {
+                // Find which target position this source was assigned to
+                // assignments[target_idx] = src_idx, so we need to find target_idx for this source
+                // Actually, assignments is indexed by target, value is source
+                // So we need to invert: for source at position i, find target position where assignments[t] == i
+                target_pixels.get(src_idx).copied().unwrap_or((0, 0, 0))
+            })
+            .flat_map(|(r, g, b)| [r, g, b])
+            .collect()
+    } else {
+        Vec::new()
+    };
+    
+    Preset {
+        inner: UnprocessedPreset {
+            name,
+            width: sidelen,
+            height: sidelen,
+            source_img: source_pixels
+                .into_iter()
+                .flat_map(|(r, g, b)| [r, g, b])
+                .collect(),
+        },
+        assignments,
+        color_shift: settings.color_shift,
+        target_colors,
+    }
+}
+
 struct ImgDiffWeights<'a> {
     source: Vec<(u8, u8, u8)>,
     target: Vec<(u8, u8, u8)>,
@@ -285,6 +327,8 @@ pub fn process_optimal<S: ProgressSink>(
                 .collect(),
         },
         assignments: assignments.clone(),
+        color_shift: settings.color_shift,
+        target_colors: Vec::new(), // Target colors computed in morph_sim
     }));
 
     // println!(
@@ -453,6 +497,8 @@ pub fn process_genetic<S: ProgressSink>(
                         .collect(),
                 },
                 assignments: assignments.clone(),
+                color_shift: settings.color_shift,
+                target_colors: Vec::new(),
             }));
             return Ok(());
         }
@@ -560,6 +606,8 @@ pub fn process_greedy<S: ProgressSink>(
                 .collect(),
         },
         assignments,
+        color_shift: settings.color_shift,
+        target_colors: Vec::new(),
     }));
     
     Ok(())
@@ -737,6 +785,8 @@ pub fn process_auction<S: ProgressSink>(
                 .collect(),
         },
         assignments,
+        color_shift: settings.color_shift,
+        target_colors: Vec::new(),
     }));
     
     Ok(())
@@ -919,6 +969,8 @@ pub fn process_hybrid<S: ProgressSink>(
                 .collect(),
         },
         assignments: final_assignments,
+        color_shift: settings.color_shift,
+        target_colors: Vec::new(),
     }));
     
     Ok(())
