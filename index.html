@@ -45,6 +45,11 @@
     <link data-trunk rel="copy-file" href="assets/apple-touch-icon.png" data-target-path="assets" data-integrity="none"/>
     <link data-trunk rel="copy-file" href="assets/pfp_transparent.png" data-target-path="assets" data-integrity="none"/>
     <link data-trunk rel="copy-file" href="assets/github-mark-white.svg" data-target-path="assets" data-integrity="none"/>
+    <link data-trunk rel="copy-file" href="assets/mug.webp" data-target-path="assets" data-integrity="none"/>
+    <link data-trunk rel="copy-file" href="assets/shirt.webp" data-target-path="assets" data-integrity="none"/>
+    <link data-trunk rel="copy-file" href="assets/phone_case.webp" data-target-path="assets" data-integrity="none" />
+    <link data-trunk rel="copy-file" href="assets/pillow.webp" data-target-path="assets" data-integrity="none" />
+    <link data-trunk rel="copy-file" href="assets/icon128.png" data-target-path="assets" data-integrity="none" />
     <link data-trunk rel="copy-file" href="worker.js" data-integrity="none"/>
 
 
@@ -219,7 +224,7 @@
         .bottom-left-icons:hover .icon-text {
             padding-left: 18px;
             opacity: 1;
-            transform: translateX(0);
+            transform: translateX(-1px);
         }
 
         .bottom-left-icons:hover .icon-link {
@@ -231,10 +236,196 @@
             font-size: small;
             opacity: 0.6;
         }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal-content {
+            position: relative;
+            background-color: #2a2a2a;
+            width: 400px;
+            height: 500px;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            color: #f0f0f0;
+            font-family: Ubuntu-Light, Helvetica, sans-serif;
+            overflow-y: auto;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: #f0f0f0;
+            font-size: 28px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            margin: 20px 0;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .carousel-slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .carousel-slide.active {
+            display: flex;
+        }
+
+        .carousel-slide img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .carousel-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-size: 20px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .carousel-nav:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        .carousel-prev {
+            left: 10px;
+        }
+
+        .carousel-next {
+            right: 10px;
+        }
+
+        .shop-button {
+            display: block;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #515151;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+
+        .shop-button:hover {
+            background-color: #0056b3;
+        }
+
+        .countdown-timer {
+            display: inline-block;
+            font-size: 14px;
+            color: #ff9800;
+            font-weight: bold;
+        }
+
+        @media (max-width: 500px) {
+            .modal-content {
+                width: 85vw;
+                height: auto;
+                max-width: 350px;
+                max-height: 80vh;
+                padding: 20px;
+                font-size: 14px;
+            }
+            
+            .modal-content h2 {
+                font-size: 18px;
+                margin-top: 25px;
+            }
+            
+            .carousel-container {
+                height: 180px;
+            }
+            
+            .shop-button {
+                padding: 12px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 
 <body>
+    <div class="modal-overlay" id="welcomeModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">&times;</button>
+            <h2>I put the images on products you can buy for money</h2>
+
+            <p>will only be available for the next <span class="countdown-timer" id="countdownTimer"></span></p>
+            
+            <div class="carousel-container">
+                <div class="carousel-slide">
+                    <img src="assets/shirt.webp" alt="shirt">
+                </div>
+                <div class="carousel-slide">
+                    <img src="assets/pillow.webp" alt="pillow">
+                </div>
+                <div class="carousel-slide active">
+                    <img src="assets/mug.webp" alt="mug">
+                </div>
+                <div class="carousel-slide">
+                    <img src="assets/phone_case.webp" alt="case">
+                </div>
+                <button class="carousel-nav carousel-prev" id="carouselPrev">&lt;</button>
+                <button class="carousel-nav carousel-next" id="carouselNext">&gt;</button>
+            </div>
+
+            <a href="https://shop.obamify.com/" target="_blank" class="shop-button">Visit Shop</a>
+        </div>
+    </div>
+
     <!-- The WASM code will resize the canvas dynamically -->
     <!-- the id is hardcoded in main.rs . so, make sure both match. -->
     <canvas id="the_canvas_id"></canvas>
@@ -250,6 +441,10 @@
 
     <!-- Bottom-left corner icons -->
     <div class="bottom-left-icons">
+        <a href="https://shop.obamify.com/" class="icon-link" target="_blank" rel="noopener noreferrer">
+            <img src="assets/icon128.png" alt="merch" />
+            <span class="icon-text">awesome obamify merch</span>
+        </a>
         <a href="https://github.com/Spu7Nix/obamify" class="icon-link" target="_blank" rel="noopener noreferrer">
             <img src="assets/github-mark-white.svg" alt="source code" />
             <span class="icon-text">source code</span>
@@ -262,6 +457,76 @@
     <!--Register Service Worker. this will cache the wasm / js scripts for offline use (for PWA functionality). -->
     <!-- Force refresh (Ctrl + F5) to load the latest files instead of cached files  -->
     <script>
+        const merchCloseTime = 1769986800;
+        (function() {
+            const modal = document.getElementById('welcomeModal');
+            const closeBtn = document.getElementById('closeModal');
+            const MODAL_CLOSED_KEY = 'shop-modal-closed';
+
+            const wasModalClosed = localStorage.getItem(MODAL_CLOSED_KEY);
+            const now = Math.floor(Date.now() / 1000);
+            const isMerchClosed = now >= merchCloseTime;
+
+            if (!wasModalClosed && !isMerchClosed) {
+                modal.classList.add('show');
+            }
+
+            closeBtn.addEventListener('click', function() {
+                modal.classList.remove('show');
+                localStorage.setItem(MODAL_CLOSED_KEY, 'true');
+            });
+
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                    localStorage.setItem(MODAL_CLOSED_KEY, 'true');
+                }
+            });
+
+            const slides = document.querySelectorAll('.carousel-slide');
+            const prevBtn = document.getElementById('carouselPrev');
+            const nextBtn = document.getElementById('carouselNext');
+            let currentSlide = 0;
+
+            function showSlide(index) {
+                slides.forEach((slide, i) => {
+                    slide.classList.toggle('active', i === index);
+                });
+            }
+
+            prevBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                currentSlide = (currentSlide - 1 + slides.length) % slides.length;
+                showSlide(currentSlide);
+            });
+
+            nextBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                currentSlide = (currentSlide + 1) % slides.length;
+                showSlide(currentSlide);
+            });
+
+            function updateCountdown() {
+                const now = Math.floor(Date.now() / 1000);
+                const remaining = merchCloseTime - now;
+
+                if (remaining <= 0) {
+                    return;
+                }
+
+                const days = Math.floor(remaining / 86400);
+                const hours = Math.floor((remaining % 86400) / 3600);
+                const minutes = Math.floor((remaining % 3600) / 60);
+                const seconds = remaining % 60;
+
+                document.getElementById('countdownTimer').textContent = 
+                    `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            }
+
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        })();
+
         // We disable caching during development so that we always view the latest version.
         if ('serviceWorker' in navigator && window.location.hash !== "#dev") {
             window.addEventListener('load', function () {
