@@ -554,25 +554,26 @@
         (function() {
             const modal = document.getElementById('welcomeModal');
             const closeBtn = document.getElementById('closeModal');
-            const MODAL_CLOSED_KEY = 'shop-modal-closed';
+            const MODAL_LAST_CLOSED = 'shop-modal-last-closed';
 
-            const wasModalClosed = localStorage.getItem(MODAL_CLOSED_KEY);
+            const wasModalClosedLessThanOneDayAgo = localStorage.getItem(MODAL_LAST_CLOSED) &&
+                (Date.now() - parseInt(localStorage.getItem(MODAL_LAST_CLOSED), 10)) < (24 * 60 * 60 * 1000);
             const now = Math.floor(Date.now() / 1000);
             const isMerchClosed = now >= merchCloseTime;
 
-            if (!wasModalClosed && !isMerchClosed) {
+            if (!wasModalClosedLessThanOneDayAgo && !isMerchClosed) {
                 modal.classList.add('show');
             }
 
             closeBtn.addEventListener('click', function() {
                 modal.classList.remove('show');
-                localStorage.setItem(MODAL_CLOSED_KEY, 'true');
+                localStorage.setItem(MODAL_LAST_CLOSED, Date.now().toString());
             });
 
             modal.addEventListener('click', function(e) {
                 if (e.target === modal) {
                     modal.classList.remove('show');
-                    localStorage.setItem(MODAL_CLOSED_KEY, 'true');
+                    localStorage.setItem(MODAL_LAST_CLOSED, Date.now().toString());
                 }
             });
 
