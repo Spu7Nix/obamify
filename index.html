@@ -290,49 +290,87 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        .popup-header {
+            font-size: 28px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .popup-text {
+            font-size: 14px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
         .carousel-container {
             position: relative;
             width: 100%;
             height: 250px;
             margin: 20px 0;
             overflow: hidden;
-            border-radius: 8px;
+            border-radius: 12px;
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        .carousel-track {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
         }
 
         .carousel-slide {
-            display: none;
+            min-width: 100%;
             width: 100%;
             height: 100%;
+            display: flex;
             justify-content: center;
             align-items: center;
-        }
-
-        .carousel-slide.active {
-            display: flex;
+            padding: 15px;
+            box-sizing: border-box;
         }
 
         .carousel-slide img {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+            border-radius: 8px;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+
+        .carousel-slide img:hover {
+            transform: scale(1.02);
         }
 
         .carousel-nav {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            background-color: rgba(0, 0, 0, 0.5);
             color: white;
             border: none;
-            padding: 10px 15px;
+            width: 40px;
+            height: 40px;
             cursor: pointer;
-            font-size: 20px;
-            border-radius: 4px;
-            transition: background-color 0.2s;
+            font-size: 18px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            background-color: #00000065;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
         }
 
         .carousel-nav:hover {
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: #b5b5b565;
+            opacity: 1;
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .carousel-nav:active {
+            transform: translateY(-50%) scale(0.95);
         }
 
         .carousel-prev {
@@ -341,6 +379,42 @@
 
         .carousel-next {
             right: 10px;
+        }
+
+        .carousel-dots {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            display: flex;
+            gap: 8px;
+            background-color: #00000065;
+            padding: 6px;
+            border-radius: 6px;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            overflow: visible;
+            z-index: 1000;
+        }
+
+        .carousel-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.4);
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+
+        .carousel-dot:hover {
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .carousel-dot.active {
+            background-color: rgba(255, 255, 255, 0.95);
+            transform: scale(1.2);
         }
 
         .shop-button {
@@ -388,6 +462,22 @@
             .carousel-container {
                 height: 180px;
             }
+
+            .carousel-nav {
+                width: 32px;
+                height: 32px;
+                font-size: 14px;
+            }
+
+            .carousel-dots {
+                bottom: 8px;
+                gap: 6px;
+            }
+
+            .carousel-dot {
+                width: 6px;
+                height: 6px;
+            }
             
             .shop-button {
                 padding: 12px;
@@ -401,25 +491,28 @@
     <div class="modal-overlay" id="welcomeModal">
         <div class="modal-content">
             <button class="modal-close" id="closeModal">&times;</button>
-            <h2>You can now buy awesome obamify merch!!</h2>
+            <h2 class="popup-header">You can now buy awesome obamify merch!!</h2>
 
-            <p>(will close forever in <span class="countdown-timer" id="countdownTimer"></span>)</p>
+            <p class="popup-text"> its for a really funny cause i promise <br/> (will close forever in <span class="countdown-timer" id="countdownTimer"></span>)</p>
             
             <div class="carousel-container">
-                <div class="carousel-slide">
-                    <img src="assets/shirt.webp" alt="shirt">
+                <div class="carousel-track" id="carouselTrack">
+                    <div class="carousel-slide">
+                        <img src="assets/mug.webp" alt="mug">
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="assets/pillow.png" alt="pillow">
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="assets/shirt.webp" alt="shirt">
+                    </div>
+                    <div class="carousel-slide">
+                        <img src="assets/phone_case.webp" alt="case">
+                    </div>
                 </div>
-                <div class="carousel-slide">
-                    <img src="assets/pillow.png" alt="pillow">
-                </div>
-                <div class="carousel-slide active">
-                    <img src="assets/mug.webp" alt="mug">
-                </div>
-                <div class="carousel-slide">
-                    <img src="assets/phone_case.webp" alt="case">
-                </div>
-                <button class="carousel-nav carousel-prev" id="carouselPrev">&lt;</button>
-                <button class="carousel-nav carousel-next" id="carouselNext">&gt;</button>
+                <button class="carousel-nav carousel-prev" id="carouselPrev">&#8249;</button>
+                <button class="carousel-nav carousel-next" id="carouselNext">&#8250;</button>
+                <div class="carousel-dots" id="carouselDots"></div>
             </div>
 
             <a href="https://shop.obamify.com/" target="_blank" class="shop-button">Visit Shop</a>
@@ -484,26 +577,42 @@
             });
 
             const slides = document.querySelectorAll('.carousel-slide');
+            const track = document.getElementById('carouselTrack');
             const prevBtn = document.getElementById('carouselPrev');
             const nextBtn = document.getElementById('carouselNext');
+            const dotsContainer = document.getElementById('carouselDots');
             let currentSlide = 0;
 
-            function showSlide(index) {
-                slides.forEach((slide, i) => {
-                    slide.classList.toggle('active', i === index);
+            // Create dot indicators
+            slides.forEach((_, i) => {
+                const dot = document.createElement('button');
+                dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
+                dot.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    goToSlide(i);
+                });
+                dotsContainer.appendChild(dot);
+            });
+            const dots = dotsContainer.querySelectorAll('.carousel-dot');
+
+            function goToSlide(index) {
+                currentSlide = index;
+                track.style.transform = `translateX(-${currentSlide * 100}%)`;
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === currentSlide);
                 });
             }
 
             prevBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                currentSlide = (currentSlide - 1 + slides.length) % slides.length;
-                showSlide(currentSlide);
+                const newIndex = (currentSlide - 1 + slides.length) % slides.length;
+                goToSlide(newIndex);
             });
 
             nextBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                currentSlide = (currentSlide + 1) % slides.length;
-                showSlide(currentSlide);
+                const newIndex = (currentSlide + 1) % slides.length;
+                goToSlide(newIndex);
             });
 
             function updateCountdown() {
