@@ -35,4 +35,4 @@ Please open an issue or a pull request if you have any suggestions or find any b
 
 # How it works
 
-magic
+black magic
