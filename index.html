@@ -32,25 +32,25 @@
     <meta name="format-detection" content="telephone=no">
 
     <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
-    <link data-trunk rel="rust" data-wasm-opt="4" data-integrity="none"/>
+    <link data-trunk rel="rust" data-wasm-opt="4" data-integrity="none" />
     <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
     <base data-trunk-public-url />
 
     <link data-trunk rel="icon" href="assets/favicon.ico" data-integrity="none">
 
     <link data-trunk rel="copy-file" href="assets/sw.js" data-integrity="none" />
-    <link data-trunk rel="copy-file" href="assets/manifest.json"/>
-    <link data-trunk rel="copy-file" href="assets/android-chrome-192x192.png" data-target-path="assets" data-integrity="none"/>
-    <link data-trunk rel="copy-file" href="assets/android-chrome-512x512.png" data-target-path="assets" data-integrity="none"/>
-    <link data-trunk rel="copy-file" href="assets/apple-touch-icon.png" data-target-path="assets" data-integrity="none"/>
-    <link data-trunk rel="copy-file" href="assets/pfp_transparent.png" data-target-path="assets" data-integrity="none"/>
-    <link data-trunk rel="copy-file" href="assets/github-mark-white.svg" data-target-path="assets" data-integrity="none"/>
-    <link data-trunk rel="copy-file" href="assets/mug.webp" data-target-path="assets" data-integrity="none"/>
-    <link data-trunk rel="copy-file" href="assets/shirt.webp" data-target-path="assets" data-integrity="none"/>
-    <link data-trunk rel="copy-file" href="assets/phone_case.webp" data-target-path="assets" data-integrity="none" />
-    <link data-trunk rel="copy-file" href="assets/pillow.png" data-target-path="assets" data-integrity="none" />
-    <link data-trunk rel="copy-file" href="assets/icon128.png" data-target-path="assets" data-integrity="none" />
-    <link data-trunk rel="copy-file" href="worker.js" data-integrity="none"/>
+    <link data-trunk rel="copy-file" href="assets/manifest.json" />
+    <link data-trunk rel="copy-file" href="assets/android-chrome-192x192.png" data-target-path="assets"
+        data-integrity="none" />
+    <link data-trunk rel="copy-file" href="assets/android-chrome-512x512.png" data-target-path="assets"
+        data-integrity="none" />
+    <link data-trunk rel="copy-file" href="assets/apple-touch-icon.png" data-target-path="assets"
+        data-integrity="none" />
+    <link data-trunk rel="copy-file" href="assets/pfp_transparent.png" data-target-path="assets"
+        data-integrity="none" />
+    <link data-trunk rel="copy-file" href="assets/github-mark-white.svg" data-target-path="assets"
+        data-integrity="none" />
+    <link data-trunk rel="copy-file" href="worker.js" data-integrity="none" />
 
 
     <link rel="manifest" href="manifest.json">
@@ -224,7 +224,7 @@
         .bottom-left-icons:hover .icon-text {
             padding-left: 18px;
             opacity: 1;
-            transform: translateX(-1px);
+            transform: translateX(0);
         }
 
         .bottom-left-icons:hover .icon-link {
@@ -236,289 +236,10 @@
             font-size: small;
             opacity: 0.6;
         }
-
-        /* Modal styles */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 10000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-overlay.show {
-            display: flex;
-        }
-
-        .modal-content {
-            position: relative;
-            background-color: #2a2a2a;
-            width: 400px;
-            height: 500px;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            color: #f0f0f0;
-            font-family: Ubuntu-Light, Helvetica, sans-serif;
-            overflow-y: auto;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #f0f0f0;
-            font-size: 28px;
-            cursor: pointer;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-
-        .modal-close:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .popup-header {
-            font-size: 28px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .popup-text {
-            font-size: 14px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-
-        .carousel-container {
-            position: relative;
-            width: 100%;
-            height: 250px;
-            margin: 20px 0;
-            overflow: hidden;
-            border-radius: 12px;
-            background-color: rgba(0, 0, 0, 0.2);
-        }
-
-        .carousel-track {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-        }
-
-        .carousel-slide {
-            min-width: 100%;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-            box-sizing: border-box;
-        }
-
-        .carousel-slide img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            border-radius: 8px;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-        }
-
-        .carousel-slide img:hover {
-            transform: scale(1.02);
-        }
-
-        .carousel-nav {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            color: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            font-size: 18px;
-            border-radius: 50%;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.7;
-            background-color: #00000065;
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-        }
-
-        .carousel-nav:hover {
-            background-color: #b5b5b565;
-            opacity: 1;
-            transform: translateY(-50%) scale(1.1);
-        }
-
-        .carousel-nav:active {
-            transform: translateY(-50%) scale(0.95);
-        }
-
-        .carousel-prev {
-            left: 10px;
-        }
-
-        .carousel-next {
-            right: 10px;
-        }
-
-        .carousel-dots {
-            position: absolute;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%) translateY(10px);
-            display: flex;
-            gap: 8px;
-            background-color: #00000065;
-            padding: 6px;
-            border-radius: 6px;
-            backdrop-filter: blur(6px);
-            -webkit-backdrop-filter: blur(6px);
-            overflow: visible;
-            z-index: 1000;
-        }
-
-        .carousel-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.4);
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            padding: 0;
-        }
-
-        .carousel-dot:hover {
-            background-color: rgba(255, 255, 255, 0.7);
-        }
-
-        .carousel-dot.active {
-            background-color: rgba(255, 255, 255, 0.95);
-            transform: scale(1.2);
-        }
-
-        .shop-button {
-            display: block;
-            padding: 15px;
-            margin: 20px 0;
-            background-color: #515151;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            text-align: center;
-            transition: background-color 0.2s;
-        }
-
-        .shop-button:hover {
-            background-color: #0056b3;
-        }
-
-        .countdown-timer {
-            display: inline-block;
-            font-size: 14px;
-            color: #ff9800;
-            font-weight: bold;
-        }
-
-        @media (max-width: 500px) {
-            .modal-content {
-                width: 85vw;
-                height: auto;
-                max-width: 350px;
-                max-height: 80vh;
-                padding: 20px;
-                font-size: 14px;
-            }
-            
-            .modal-content h2 {
-                font-size: 18px;
-                margin-top: 25px;
-            }
-            
-            .carousel-container {
-                height: 180px;
-            }
-
-            .carousel-nav {
-                width: 32px;
-                height: 32px;
-                font-size: 14px;
-            }
-
-            .carousel-dots {
-                bottom: 8px;
-                gap: 6px;
-            }
-
-            .carousel-dot {
-                width: 6px;
-                height: 6px;
-            }
-            
-            .shop-button {
-                padding: 12px;
-                font-size: 16px;
-            }
-        }
     </style>
 </head>
 
 <body>
-    <div class="modal-overlay" id="welcomeModal">
-        <div class="modal-content">
-            <button class="modal-close" id="closeModal">&times;</button>
-            <h2 class="popup-header">You can now buy awesome obamify merch!!</h2>
-
-            <p class="popup-text"> its for a really funny cause i promise <br/> (will close forever in <span class="countdown-timer" id="countdownTimer"></span>)</p>
-            
-            <div class="carousel-container">
-                <div class="carousel-track" id="carouselTrack">
-                    <div class="carousel-slide">
-                        <img src="assets/mug.webp" alt="mug">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="assets/pillow.png" alt="pillow">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="assets/shirt.webp" alt="shirt">
-                    </div>
-                    <div class="carousel-slide">
-                        <img src="assets/phone_case.webp" alt="case">
-                    </div>
-                </div>
-                <button class="carousel-nav carousel-prev" id="carouselPrev">&#8249;</button>
-                <button class="carousel-nav carousel-next" id="carouselNext">&#8250;</button>
-                <div class="carousel-dots" id="carouselDots"></div>
-            </div>
-
-            <a href="https://shop.obamify.com/" target="_blank" class="shop-button">Visit Shop</a>
-        </div>
-    </div>
-
     <!-- The WASM code will resize the canvas dynamically -->
     <!-- the id is hardcoded in main.rs . so, make sure both match. -->
     <canvas id="the_canvas_id"></canvas>
@@ -534,10 +255,6 @@
 
     <!-- Bottom-left corner icons -->
     <div class="bottom-left-icons">
-        <a href="https://shop.obamify.com/" class="icon-link" target="_blank" rel="noopener noreferrer">
-            <img src="assets/icon128.png" alt="merch" />
-            <span class="icon-text">awesome obamify merch</span>
-        </a>
         <a href="https://github.com/Spu7Nix/obamify" class="icon-link" target="_blank" rel="noopener noreferrer">
             <img src="assets/github-mark-white.svg" alt="source code" />
             <span class="icon-text">source code</span>
@@ -550,93 +267,6 @@
     <!--Register Service Worker. this will cache the wasm / js scripts for offline use (for PWA functionality). -->
     <!-- Force refresh (Ctrl + F5) to load the latest files instead of cached files  -->
     <script>
-        const merchCloseTime = 1769986800;
-        (function() {
-            const modal = document.getElementById('welcomeModal');
-            const closeBtn = document.getElementById('closeModal');
-            const MODAL_LAST_CLOSED = 'shop-modal-last-closed';
-
-            const wasModalClosedLessThanOneDayAgo = localStorage.getItem(MODAL_LAST_CLOSED) &&
-                (Date.now() - parseInt(localStorage.getItem(MODAL_LAST_CLOSED), 10)) < (24 * 60 * 60 * 1000);
-            const now = Math.floor(Date.now() / 1000);
-            const isMerchClosed = now >= merchCloseTime;
-
-            if (!wasModalClosedLessThanOneDayAgo && !isMerchClosed) {
-                modal.classList.add('show');
-            }
-
-            closeBtn.addEventListener('click', function() {
-                modal.classList.remove('show');
-                localStorage.setItem(MODAL_LAST_CLOSED, Date.now().toString());
-            });
-
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.classList.remove('show');
-                    localStorage.setItem(MODAL_LAST_CLOSED, Date.now().toString());
-                }
-            });
-
-            const slides = document.querySelectorAll('.carousel-slide');
-            const track = document.getElementById('carouselTrack');
-            const prevBtn = document.getElementById('carouselPrev');
-            const nextBtn = document.getElementById('carouselNext');
-            const dotsContainer = document.getElementById('carouselDots');
-            let currentSlide = 0;
-
-            // Create dot indicators
-            slides.forEach((_, i) => {
-                const dot = document.createElement('button');
-                dot.className = 'carousel-dot' + (i === 0 ? ' active' : '');
-                dot.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    goToSlide(i);
-                });
-                dotsContainer.appendChild(dot);
-            });
-            const dots = dotsContainer.querySelectorAll('.carousel-dot');
-
-            function goToSlide(index) {
-                currentSlide = index;
-                track.style.transform = `translateX(-${currentSlide * 100}%)`;
-                dots.forEach((dot, i) => {
-                    dot.classList.toggle('active', i === currentSlide);
-                });
-            }
-
-            prevBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const newIndex = (currentSlide - 1 + slides.length) % slides.length;
-                goToSlide(newIndex);
-            });
-
-            nextBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const newIndex = (currentSlide + 1) % slides.length;
-                goToSlide(newIndex);
-            });
-
-            function updateCountdown() {
-                const now = Math.floor(Date.now() / 1000);
-                const remaining = merchCloseTime - now;
-
-                if (remaining <= 0) {
-                    return;
-                }
-
-                const days = Math.floor(remaining / 86400);
-                const hours = Math.floor((remaining % 86400) / 3600);
-                const minutes = Math.floor((remaining % 3600) / 60);
-                const seconds = remaining % 60;
-
-                document.getElementById('countdownTimer').textContent = 
-                    `${days}d ${hours}h ${minutes}m ${seconds}s`;
-            }
-
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-        })();
-
         // We disable caching during development so that we always view the latest version.
         if ('serviceWorker' in navigator && window.location.hash !== "#dev") {
             window.addEventListener('load', function () {
@@ -666,8 +296,8 @@
             }
 
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                            (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-            
+                (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+
             if (!isMobile) {
                 return;
             }
@@ -704,15 +334,15 @@
                 max-width: 300px;
             `;
 
-            shareButton.addEventListener('click', async function(e) {
+            shareButton.addEventListener('click', async function (e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 try {
                     const response = await fetch(blobUrl);
                     const blob = await response.blob();
                     const file = new File([blob], fileName, { type: 'image/gif' });
-                    
+
                     if (navigator.canShare && !navigator.canShare({ files: [file] })) {
                         throw new Error('File sharing not supported');
                     }
@@ -755,8 +385,8 @@
             container.appendChild(downloadLink);
         }
 
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
                 if (mutation.addedNodes.length) {
                     addShareButton();
                 }
@@ -764,7 +394,7 @@
         });
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('DOMContentLoaded', function () {
                 observer.observe(document.body, {
                     childList: true,
                     subtree: true
