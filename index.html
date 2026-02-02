@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<!-- Disable zooming: -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<head>
+    <title>obamify</title>
+
+    <meta name="description" content="revolutionary new technology that turns any image into obama">
+    <meta name="keywords" content="image processing, image morphing, optimal transport, meme generator">
+    <meta name="author" content="Spu7Nix">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://obamify.com/">
+    <meta property="og:title" content="obamify">
+    <meta property="og:description" content="revolutionary new technology that turns any image into obama">
+    <meta property="og:image" content="https://obamify.com/assets/android-chrome-512x512.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:site_name" content="obamify">
+
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://obamify.com/">
+    <meta property="twitter:title" content="obamify">
+    <meta property="twitter:description" content="revolutionary new technology that turns any image into obama">
+    <meta property="twitter:image" content="https://obamify.com/assets/android-chrome-512x512.png">
+
+    <meta name="application-name" content="obamify">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
+    
+<script type="module">
+import init, * as bindings from 'https://spu7nix.github.io/obamify/obamify-daecbab987d2f8ef.js';
+const wasm = await init({ module_or_path: 'https://spu7nix.github.io/obamify/obamify-daecbab987d2f8ef_bg.wasm' });
+
+
+window.wasmBindings = bindings;
+
+
+dispatchEvent(new CustomEvent("TrunkApplicationStarted", {detail: {wasm}}));
+
+</script>
+    <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
+    <base href="https://spu7nix.github.io/obamify/" />
+
+    <link rel="icon" href="https://spu7nix.github.io/obamify/favicon-fe7d7ab08604cd85.ico"/>
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="white">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#404040">
+
+    <style>
+        html {
+            /* Remove touch delay: */
+            touch-action: manipulation;
+        }
+
+        body {
+            /* Light mode background color for what is not covered by the egui canvas,
+            or where the egui canvas is translucent. */
+            background: #909090;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                /* Dark mode background color for what is not covered by the egui canvas,
+                or where the egui canvas is translucent. */
+                background: #404040;
+            }
+        }
+
+        /* Allow canvas to fill entire web page: */
+        html,
+        body {
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Make canvas fill entire document: */
+        canvas {
+            margin-right: auto;
+            margin-left: auto;
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Limit canvas size for WebGL compatibility (max 4096x4096) */
+            max-width: 4096px;
+            max-height: 4096px;
+        }
+
+        .centered {
+            margin-right: auto;
+            margin-left: auto;
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #f0f0f0;
+            font-size: 24px;
+            font-family: Ubuntu-Light, Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        #rfd-output {
+            font-weight: bold;
+            padding-bottom: 10px;
+            padding-top: 10px;
+        }
+
+        #rfd-input {
+            font-weight: bold;
+            padding-bottom: 10px;
+            padding-top: 10px;
+        }
+
+        #rfd-card {
+            font-family: Arial, Helvetica, sans-serif;
+            border: white 1px solid;
+            border-radius: 10px;
+        }
+
+        /* ---------------------------------------------- */
+        /* Loading animation from https://loading.io/css/ */
+        .lds-dual-ring {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+        }
+
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 24px;
+            height: 24px;
+            margin: 0px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            border-color: #fff transparent #fff transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Bottom-left corner icons */
+        .bottom-left-icons {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .icon-link {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            background-color: rgba(0, 0, 0, 1.0);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            overflow: visible;
+        }
+
+        .icon-link:hover {
+            transform: scale(1.1);
+            background-color: rgba(0, 0, 0, 1.0);
+        }
+
+        .icon-link img {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+        }
+
+        .icon-text {
+            position: absolute;
+            left: 100%;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 8px;
+            padding-left: 8px;
+            border-radius: 0 8px 8px 0;
+            font-family: Fira Code, monospace, sans-serif;
+            font-size: 10px;
+            white-space: nowrap;
+            margin-left: 0px;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .bottom-left-icons:hover .icon-text {
+            padding-left: 18px;
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .bottom-left-icons:hover .icon-link {
+            border-radius: 12px 12px 0 12px;
+        }
+
+        .error {
+            padding-top: 10px;
+            font-size: small;
+            opacity: 0.6;
+        }
+    </style>
+<link rel="modulepreload" href="https://spu7nix.github.io/obamify/obamify-daecbab987d2f8ef.js" crossorigin="anonymous"><link rel="preload" href="https://spu7nix.github.io/obamify/obamify-daecbab987d2f8ef_bg.wasm" crossorigin="anonymous" as="fetch" type="application/wasm"></head>
+
+<body>
+    <!-- The WASM code will resize the canvas dynamically -->
+    <!-- the id is hardcoded in main.rs . so, make sure both match. -->
+    <canvas id="the_canvas_id"></canvas>
+
+    <!-- the loading spinner will be removed in main.rs -->
+    <div class="centered" id="loading_text">
+        <noscript>You need javascript to use this website</noscript>
+        <p style="font-size:16px">
+            Loading…
+        </p>
+        <div class="lds-dual-ring"></div>
+    </div>
+
+    <!-- Bottom-left corner icons -->
+    <div class="bottom-left-icons">
+        <a href="https://github.com/Spu7Nix/obamify" class="icon-link" target="_blank" rel="noopener noreferrer">
+            <img src="assets/github-mark-white.svg" alt="source code" />
+            <span class="icon-text">source code</span>
+        </a>
+        <a href="https://spu7nix.net" class="icon-link" target="_blank" rel="noopener noreferrer">
+            <img src="assets/pfp_transparent.png" alt="Spu7Nix" />
+            <span class="icon-text">my website</span>
+        </a>
+    </div>
+    <!--Register Service Worker. this will cache the wasm / js scripts for offline use (for PWA functionality). -->
+    <!-- Force refresh (Ctrl + F5) to load the latest files instead of cached files  -->
+    <script>
+        // We disable caching during development so that we always view the latest version.
+        if ('serviceWorker' in navigator && window.location.hash !== "#dev") {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+
+        function addShareButton() {
+            const downloadLink = document.getElementById('rfd-output');
+            if (!downloadLink) {
+                return;
+            }
+
+            const parent = downloadLink.parentElement;
+            if (parent.querySelector('.share-button')) {
+                return;
+            }
+
+            // remove the "Ok" button, keep only "Cancel" button
+            const rfdButtons = parent.querySelectorAll('.rfd-button');
+            if (rfdButtons.length >= 2) {
+                rfdButtons[0].remove();
+            }
+
+            if (!navigator.share) {
+                return;
+            }
+
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+
+            if (!isMobile) {
+                return;
+            }
+
+            const blobUrl = downloadLink.href;
+            const fileName = downloadLink.download || 'recording.gif';
+
+            const container = document.createElement('div');
+            container.style.cssText = `
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+                font-weight: bold;
+                padding-bottom: 10px;
+                padding-top: 10px;
+            `;
+
+            const shareButton = document.createElement('button');
+            shareButton.className = 'share-button';
+            shareButton.textContent = 'save/share';
+            shareButton.style.cssText = `
+                padding: 12px 24px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-weight: bold;
+                font-size: 16px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+                width: 100%;
+                max-width: 300px;
+            `;
+
+            shareButton.addEventListener('click', async function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                try {
+                    const response = await fetch(blobUrl);
+                    const blob = await response.blob();
+                    const file = new File([blob], fileName, { type: 'image/gif' });
+
+                    if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+                        throw new Error('File sharing not supported');
+                    }
+
+                    await navigator.share({
+                        files: [file],
+                        title: 'obamification',
+                        text: 'made with https://obamify.com'
+                    });
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        console.error('Error sharing:', error);
+                        // Fall back to showing the download link
+                        alert('Could not share file: ' + error.message + '\nTry using the download link instead.');
+                    } else {
+                        console.log('Share cancelled by user');
+                    }
+                }
+            });
+
+            // Style the download link as a secondary button
+            downloadLink.style.cssText = `
+                padding: 10px 20px;
+                background-color: transparent;
+                color: white;
+                border: 1px solid white;
+                border-radius: 5px;
+                cursor: pointer;
+                font-weight: normal;
+                font-size: 14px;
+                text-decoration: none;
+                display: inline-block;
+                touch-action: manipulation;
+            `;
+            downloadLink.textContent = 'or download file';
+
+            // Wrap everything in the container
+            parent.insertBefore(container, downloadLink);
+            container.appendChild(shareButton);
+            container.appendChild(downloadLink);
+        }
+
+        const observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.addedNodes.length) {
+                    addShareButton();
+                }
+            });
+        });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function () {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            });
+        } else {
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
+    </script>
+</body>
+
+</html>
+
+<!-- Powered by egui: https://github.com/emilk/egui/ -->
