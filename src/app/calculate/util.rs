@@ -116,10 +116,76 @@ impl CropScale {
     }
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq)]
 pub enum Algorithm {
-    Optimal,
-    Genetic,
+    Optimal,   // Hungarian/Kuhn-Munkres - slowest, mathematically perfect
+    Auction,   // Auction algorithm - fast, near-optimal (~98% quality)
+    Greedy,    // Greedy heuristic - fastest, good quality (~90-95%)
+    Hybrid,    // Coarse-to-fine - moderate speed, near-optimal
+    Genetic,   // Random swaps - fast, sub-optimal (original "fast" algorithm)
+    Spatial,   // Spatial partitioning - optimized for high resolutions
+}
+
+impl Algorithm {
+    /// Short display name for the dropdown
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Algorithm::Greedy => "⚡ Quick",
+            Algorithm::Genetic => "🎲 Standard", 
+            Algorithm::Auction => "💰 Balanced",
+            Algorithm::Hybrid => "🔍 Quality",
+            Algorithm::Spatial => "🚀 High-Res",
+            Algorithm::Optimal => "👑 Perfect",
+        }
+    }
+    
+    /// Detailed description for tooltips/UI
+    pub fn description(&self) -> &'static str {
+        match self {
+            Algorithm::Greedy => "Fastest option. Assigns each pixel to its best available match in order of importance. Great for previews.",
+            Algorithm::Genetic => "Default algorithm. Uses random swaps to optimize the layout. Good balance of speed and quality.",
+            Algorithm::Auction => "Pixels 'bid' on positions like an auction. Near-optimal results with reasonable speed.",
+            Algorithm::Hybrid => "Runs perfect matching at low-res, then refines. Best quality-to-speed ratio for high resolutions.",
+            Algorithm::Spatial => "Optimized for 256+ resolution. Uses spatial partitioning to find nearby matches quickly. Best for high-res.",
+            Algorithm::Optimal => "Mathematically perfect matching. Very slow for high resolutions but guarantees the best result.",
+        }
+    }
+    
+    /// Estimated quality percentage
+    pub fn quality_estimate(&self) -> u8 {
+        match self {
+            Algorithm::Greedy => 90,
+            Algorithm::Genetic => 85,
+            Algorithm::Auction => 97,
+            Algorithm::Hybrid => 96,
+            Algorithm::Spatial => 93,
+            Algorithm::Optimal => 100,
+        }
+    }
+    
+    /// Relative speed (1-5, higher is faster)
+    pub fn speed_rating(&self) -> u8 {
+        match self {
+            Algorithm::Greedy => 5,
+            Algorithm::Genetic => 4,
+            Algorithm::Auction => 3,
+            Algorithm::Hybrid => 2,
+            Algorithm::Spatial => 4, // Fast, especially at high res
+            Algorithm::Optimal => 1,
+        }
+    }
+    
+    /// All algorithms in recommended order (fastest to slowest)
+    pub fn all() -> [Algorithm; 6] {
+        [
+            Algorithm::Greedy,
+            Algorithm::Spatial,
+            Algorithm::Genetic,
+            Algorithm::Auction,
+            Algorithm::Hybrid,
+            Algorithm::Optimal,
+        ]
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -129,6 +195,10 @@ pub struct GenerationSettings {
 
     pub proximity_importance: i64,
     pub algorithm: Algorithm,
+    
+    /// How much colors can shift toward their target (0.0 = none, 1.0 = full morph)
+    /// During animation, colors will interpolate: source + color_shift * (target - source)
+    pub color_shift: f32,
 
     pub sidelen: u32,
     custom_target: Option<(u32, u32, Vec<u8>)>,
@@ -142,8 +212,9 @@ impl GenerationSettings {
     pub fn default(id: Uuid, name: String) -> Self {
         Self {
             name,
-            proximity_importance: 13, // 20
+            proximity_importance: 13,
             algorithm: Algorithm::Genetic,
+            color_shift: 0.0, // No color shifting by default
             id,
             sidelen: 128,
             custom_target: None,

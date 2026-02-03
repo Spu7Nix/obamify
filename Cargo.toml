@@ -64,6 +64,10 @@ console_error_panic_hook = "0.1.7"
 # Override wgpu for WASM to use only WebGL backend
 wgpu = { version = "25.0", features = ["webgl"] }
 
+[[bin]]
+name = "benchmark"
+path = "src/bin/benchmark.rs"
+
 [profile.release]
 opt-level = 3 # fast and small wasm
 
