@@ -90,7 +90,10 @@ pub enum ProgressMsg {
         data: Vec<u8>,
     },
     UpdateAssignments(Vec<usize>),
-    Done(Preset), // result directory
+    Done {
+        preset: Preset,
+        elapsed_seconds: f32,
+    },
     Error(String),
     Cancelled,
 }
@@ -101,7 +104,7 @@ impl ProgressMsg {
             ProgressMsg::Progress(_) => "progress",
             ProgressMsg::UpdatePreview { .. } => "update_preview",
             ProgressMsg::UpdateAssignments(_) => "update_assignments",
-            ProgressMsg::Done(_) => "done",
+            ProgressMsg::Done { .. } => "done",
             ProgressMsg::Error(_) => "error",
             ProgressMsg::Cancelled => "cancelled",
         }
@@ -274,18 +277,21 @@ pub fn process_optimal<S: ProgressSink>(
 
     //let dir_name = util::save_result(target, "todo".to_string(), source, assignments, img)?;
 
-    tx.send(ProgressMsg::Done(Preset {
-        inner: UnprocessedPreset {
-            name: unprocessed.name,
-            width: settings.sidelen,
-            height: settings.sidelen,
-            source_img: source_pixels
-                .into_iter()
-                .flat_map(|(r, g, b)| [r, g, b])
-                .collect(),
+    tx.send(ProgressMsg::Done {
+        preset: Preset {
+            inner: UnprocessedPreset {
+                name: unprocessed.name,
+                width: settings.sidelen,
+                height: settings.sidelen,
+                source_img: source_pixels
+                    .into_iter()
+                    .flat_map(|(r, g, b)| [r, g, b])
+                    .collect(),
+            },
+            assignments: assignments.clone(),
         },
-        assignments: assignments.clone(),
-    }));
+        elapsed_seconds: 0.0,
+    });
 
     // println!(
     //     "finished in {:.2?} seconds",
@@ -347,7 +353,9 @@ impl Pixel {
     }
 }
 
-const SWAPS_PER_GENERATION_PER_PIXEL: usize = 128;
+const SWAPS_PER_GENERATION_PER_PIXEL: usize = 8;
+
+use std::time::Instant;
 
 pub fn process_genetic<S: ProgressSink>(
     unprocessed: UnprocessedPreset,
@@ -355,6 +363,7 @@ pub fn process_genetic<S: ProgressSink>(
     tx: &mut S,
     #[cfg(not(target_arch = "wasm32"))] cancel: Arc<AtomicBool>,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let now = Instant::now();
     let source_img = image::ImageBuffer::from_vec(
         unprocessed.width,
         unprocessed.height,
@@ -384,14 +393,17 @@ pub fn process_genetic<S: ProgressSink>(
 
     let mut rng = frand::Rand::with_seed(12345);
     let swaps_per_generation = SWAPS_PER_GENERATION_PER_PIXEL * pixels.len();
+    let mut assignments = vec![0; pixels.len()];
+    let positions: Vec<(u16, u16)> = (0..pixels.len())
+    .map(|i| ((i as u32 % settings.sidelen) as u16, (i as u32 / settings.sidelen) as u16))
+    .collect();
 
     let mut max_dist = settings.sidelen;
     loop {
         let mut swaps_made = 0;
         for _ in 0..swaps_per_generation {
             let apos = rng.gen_range(0..pixels.len() as u32) as usize;
-            let ax = apos as u16 % settings.sidelen as u16;
-            let ay = apos as u16 / settings.sidelen as u16;
+            let (ax, ay) = positions[apos];
             let bx = (ax as i16 + rng.gen_range(-(max_dist as i16)..(max_dist as i16 + 1)))
                 .clamp(0, settings.sidelen as i16 - 1) as u16;
             let by = (ay as i16 + rng.gen_range(-(max_dist as i16)..(max_dist as i16 + 1)))
@@ -431,29 +443,35 @@ pub fn process_genetic<S: ProgressSink>(
             if cancel.load(std::sync::atomic::Ordering::Relaxed) {
                 println!("cancelled");
                 tx.send(ProgressMsg::Cancelled);
+                let elapsed_time = now.elapsed();
+                println!("Running morph() took {:.3} seconds.", elapsed_time.as_secs_f32());
                 return Ok(());
             }
         }
 
-        let assignments = pixels
-            .iter()
-            .map(|p| p.src_y as usize * settings.sidelen as usize + p.src_x as usize)
-            .collect::<Vec<_>>();
+        for (i, p) in pixels.iter().enumerate() {
+            assignments[i] = p.src_y as usize * settings.sidelen as usize + p.src_x as usize;
+        }
         //debug_print(format!("max_dist = {max_dist}, swaps made = {swaps_made}"));
         if max_dist < 4 && swaps_made < 10 {
             //let dir_name = util::save_result(target, base_name, source, assignments, img)?;
-            tx.send(ProgressMsg::Done(Preset {
-                inner: UnprocessedPreset {
-                    name: unprocessed.name,
-                    width: settings.sidelen,
-                    height: settings.sidelen,
-                    source_img: source_pixels
-                        .iter()
-                        .flat_map(|(r, g, b)| [*r, *g, *b])
-                        .collect(),
+            let elapsed_time = now.elapsed();
+            tx.send(ProgressMsg::Done {
+                preset: Preset {
+                    inner: UnprocessedPreset {
+                        name: unprocessed.name,
+                        width: settings.sidelen,
+                        height: settings.sidelen,
+                        source_img: source_pixels
+                            .iter()
+                            .flat_map(|(r, g, b)| [*r, *g, *b])
+                            .collect(),
+                    },
+                    assignments: assignments.clone(),
                 },
-                assignments: assignments.clone(),
-            }));
+                elapsed_seconds: elapsed_time.as_secs_f32(),
+            });
+            //println!("Running morph() took {:.3} seconds.", elapsed_time.as_secs_f32());
             return Ok(());
         }
         let data = make_new_img(&source_pixels, &assignments, settings.sidelen);
