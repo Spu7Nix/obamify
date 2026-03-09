@@ -57,6 +57,7 @@ pub(crate) struct GuiState {
     error_message: Option<String>,
 
     has_obamified_once: bool,
+    last_processing_time: Option<f32>,
 }
 
 impl GuiState {
@@ -84,6 +85,7 @@ impl GuiState {
             current_preset,
             error_message: None,
             has_obamified_once,
+            last_processing_time: None,
         }
     }
 
@@ -306,7 +308,7 @@ impl App for ObamifyApp {
                                         self.sim.set_assignments(assignments, self.size.0)
                                     }
                                     ProgressMsg::Progress(_) => todo!(),
-                                    ProgressMsg::Done(_) => todo!(),
+                                    ProgressMsg::Done { .. } => todo!(),
                                     ProgressMsg::Error(_) => todo!(),
                                 }
                             }
@@ -386,7 +388,7 @@ impl App for ObamifyApp {
                                         let name = self.sim.name();
                                         if name.chars().count() > 13 {
                                             let truncated: String = name.chars().take(10).collect();
-                                            format!("{truncated}…")
+                                            format!("{truncated}...")
                                         } else {
                                             name.clone()
                                         }
@@ -545,6 +547,12 @@ impl App for ObamifyApp {
                                         )
                                         .ok();
                                 }
+                            }
+                            
+                            // Display last processing time if available
+                            if let Some(elapsed) = self.gui.last_processing_time {
+                                ui.separator();
+                                ui.label(format!("⏱ Obamification processing time: {:.3}s", elapsed));
                             }
                         }
                     }
@@ -824,7 +832,7 @@ impl App for ObamifyApp {
                         ui.set_min_width(ui.available_width().min(400.0));
                         while let Some(msg) = self.get_latest_msg() {
                             match msg {
-                                ProgressMsg::Done(new_preset) => {
+                                ProgressMsg::Done { preset: new_preset, elapsed_seconds } => {
                                     self.preview_image = None;
                                     self.resize_textures(
                                         device,
@@ -841,6 +849,7 @@ impl App for ObamifyApp {
                                     );
                                     self.gui.animate = true;
                                     self.gui.has_obamified_once = true;
+                                    self.gui.last_processing_time = Some(elapsed_seconds);
                                     self.gui.hide_progress_modal();
                                     ui.close();
                                     break;
