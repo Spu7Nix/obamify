@@ -28,8 +28,6 @@ bytemuck = { version = "1.16", features = ["derive"] }
 image = { version = "0.25.6", features = ["serde"] }
 
 palette = "0.7.6"
-pathfinding = "4.13.0"
-indexmap = "2.11.0"
 
 frand = "0.10.1"
 uuid = { version = "1.18.1", features = ["v4", "js", "serde"] }
@@ -47,6 +45,7 @@ serde = { version = "1.0.219", features = ["derive"] }
 # native:
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 env_logger = "0.11.8"
+rayon = "1.10"  # multithreaded solvers (the web build stays single-threaded)
 
 # web:
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -63,6 +62,9 @@ console_error_panic_hook = "0.1.7"
 
 # Override wgpu for WASM to use only WebGL backend
 wgpu = { version = "25.0", features = ["webgl"] }
+
+[dev-dependencies]
+pathfinding = "4.13.0" # reference Hungarian implementation for tests
 
 [profile.release]
 opt-level = 3 # fast and small wasm
